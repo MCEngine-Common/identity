@@ -19,10 +19,10 @@ import java.util.Locale;
  * <p>
  * Completion paths:
  * <ul>
- *     <li><b>/identity</b> → {@code saveinv}, {@code loadinv}, {@code alt}</li>
+ *     <li><b>/identity</b> → {@code alt}</li>
  *     <li><b>/identity alt</b> → {@code create}, {@code switch}, {@code name}</li>
- *     <li><b>/identity alt switch</b> → suggests player's alt UUIDs (e.g. {@code {uuid}-0})</li>
- *     <li><b>/identity alt name &lt;altUuid&gt;</b> → suggests player's alt UUIDs, then {@code &lt;name|null&gt;}</li>
+ *     <li><b>/identity alt switch</b> → suggests player's alts (name if set, otherwise {@code {uuid}-N})</li>
+ *     <li><b>/identity alt name &lt;altUuid&gt;</b> → suggests player's alts (name if set, otherwise {@code {uuid}-N}), then {@code &lt;name|null&gt;}</li>
  * </ul>
  */
 public class MCEngineIdentityTabCompleter implements TabCompleter {
@@ -46,7 +46,7 @@ public class MCEngineIdentityTabCompleter implements TabCompleter {
 
         // /identity
         if (args.length == 1) {
-            return filterPrefix(args[0], List.of("saveinv", "loadinv", "alt"));
+            return filterPrefix(args[0], List.of("alt"));
         }
 
         // /identity alt ...
@@ -55,15 +55,15 @@ public class MCEngineIdentityTabCompleter implements TabCompleter {
                 return filterPrefix(args[1], List.of("create", "switch", "name"));
             }
 
-            // /identity alt switch <altUuid>
+            // /identity alt switch <alt>
             if (args.length == 3 && "switch".equalsIgnoreCase(args[1])) {
-                return filterPrefix(args[2], fetchPlayerAltUuids(player));
+                return filterPrefix(args[2], fetchPlayerAlts(player));
             }
 
-            // /identity alt name <altUuid> <name|null>
+            // /identity alt name <alt> <name|null>
             if ("name".equalsIgnoreCase(args[1])) {
                 if (args.length == 3) {
-                    return filterPrefix(args[2], fetchPlayerAltUuids(player));
+                    return filterPrefix(args[2], fetchPlayerAlts(player));
                 } else if (args.length == 4) {
                     return filterPrefix(args[3], List.of("null"));
                 }
@@ -74,22 +74,27 @@ public class MCEngineIdentityTabCompleter implements TabCompleter {
     }
 
     /**
-     * Fetches all alternative UUIDs belonging to the player's identity.
+     * Fetches all alternatives belonging to the player's identity.
+     * If {@code identity_alternative_name} is set, it is returned;
+     * otherwise the {@code identity_alternative_uuid} is returned.
      *
      * @param player the Bukkit player
-     * @return list of alt UUID strings (e.g., {@code {uuid}-0}), possibly empty
+     * @return list of alt identifiers or names
      */
-    private List<String> fetchPlayerAltUuids(Player player) {
+    private List<String> fetchPlayerAlts(Player player) {
         Connection c = api.getDB().getDBConnection();
         if (c == null) return Collections.emptyList();
 
         List<String> alts = new ArrayList<>();
         try (PreparedStatement ps = c.prepareStatement(
-                "SELECT identity_alternative_uuid FROM identity_alternative WHERE identity_uuid = ? ORDER BY identity_alternative_uuid ASC")) {
+                "SELECT identity_alternative_uuid, identity_alternative_name " +
+                        "FROM identity_alternative WHERE identity_uuid = ? ORDER BY identity_alternative_uuid ASC")) {
             ps.setString(1, player.getUniqueId().toString());
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    alts.add(rs.getString(1));
+                    String altUuid = rs.getString(1);
+                    String altName = rs.getString(2);
+                    alts.add((altName != null && !altName.isEmpty()) ? altName : altUuid);
                 }
             }
         } catch (Exception e) {
