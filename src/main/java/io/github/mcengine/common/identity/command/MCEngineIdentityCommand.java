@@ -11,12 +11,13 @@ import org.bukkit.entity.Player;
  * <p>
  * Provides subcommands:
  * <ul>
- *     <li>{@code saveinv}</li>
- *     <li>{@code loadinv}</li>
  *     <li>{@code alt create}</li>
  *     <li>{@code alt switch &lt;altUuid&gt;} (auto-saves current and auto-loads target)</li>
  *     <li>{@code alt name &lt;altUuid&gt; &lt;name|null&gt;}</li>
  * </ul>
+ *
+ * <p>Note: manual save/load commands have been removed since inventory
+ * synchronization is now automatic on join, quit, and inventory open/close.</p>
  */
 public class MCEngineIdentityCommand implements CommandExecutor {
 
@@ -41,21 +42,11 @@ public class MCEngineIdentityCommand implements CommandExecutor {
         }
         Player p = (Player) sender;
         if (args.length == 0) {
-            sender.sendMessage("/identity saveinv | loadinv | alt create | alt switch <altUuid> | alt name <altUuid> <name|null>");
+            sender.sendMessage("/identity alt create | alt switch <altUuid> | alt name <altUuid> <name|null>");
             return true;
         }
         String sub = args[0].toLowerCase();
         switch (sub) {
-            case "saveinv" -> {
-                boolean ok = MCEngineIdentityCommon.getApi().saveActiveAltInventory(p);
-                sender.sendMessage(ok ? "Saved active alt inventory." : "Failed to save (no active alt?).");
-                return true;
-            }
-            case "loadinv" -> {
-                boolean ok = MCEngineIdentityCommon.getApi().loadActiveAltInventory(p);
-                sender.sendMessage(ok ? "Loaded active alt inventory." : "Failed to load (no data?).");
-                return true;
-            }
             case "alt" -> {
                 if (args.length < 2) {
                     sender.sendMessage("/identity alt create | switch <altUuid> | name <altUuid> <name|null>");
@@ -93,7 +84,7 @@ public class MCEngineIdentityCommand implements CommandExecutor {
                 }
             }
             default -> {
-                sender.sendMessage("/identity saveinv | loadinv | alt create | alt switch <altUuid> | alt name <altUuid> <name|null>");
+                sender.sendMessage("/identity alt create | alt switch <altUuid> | alt name <altUuid> <name|null>");
                 return true;
             }
         }
