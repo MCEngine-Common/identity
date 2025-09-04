@@ -5,6 +5,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -12,10 +13,10 @@ import java.sql.ResultSet;
 import java.sql.Timestamp;
 
 /**
- * Listens for player join events and ensures the primary alternative
- * identifier <code>{uuid}-0</code> exists for each player. If the main
- * identity or the <code>-0</code> alternative is missing, they will be
- * created automatically.
+ * Listens for player join/quit events, ensures the primary alternative
+ * identifier <code>{uuid}-0</code> exists for each player, and performs
+ * automatic inventory load/save on join/quit so players don't have to run
+ * commands manually.
  */
 public class MCEngineIdentityListener implements Listener {
 
@@ -36,10 +37,9 @@ public class MCEngineIdentityListener implements Listener {
      * <ol>
      *     <li>Ensures {@code identity(identity_uuid)} exists.</li>
      *     <li>Ensures {@code identity_alternative(identity_alternative_uuid = {uuid}-0)} exists.</li>
+     *     <li>Ensures a {@code identity_session} row exists and points to {@code {uuid}-0} if none present.</li>
+     *     <li>Automatically loads the active alt's inventory into the player, if stored.</li>
      * </ol>
-     *
-     * <p>This method avoids engine/dialect-specific UPSERT syntax by using
-     * existence checks followed by inserts.</p>
      *
      * @param event Bukkit player join event
      */
@@ -102,9 +102,45 @@ public class MCEngineIdentityListener implements Listener {
                     insAlt.executeUpdate();
                 }
             }
+
+            // 3) Ensure session row exists; if absent, point to {uuid}-0
+            boolean hasSession = false;
+            try (PreparedStatement chkSess = c.prepareStatement(
+                    "SELECT identity_alternative_uuid FROM identity_session WHERE identity_uuid = ?")) {
+                chkSess.setString(1, identityUuid);
+                try (ResultSet rs = chkSess.executeQuery()) {
+                    hasSession = rs.next();
+                }
+            }
+            if (!hasSession) {
+                try (PreparedStatement insSess = c.prepareStatement(
+                        "INSERT INTO identity_session (identity_uuid, identity_alternative_uuid) VALUES (?, ?)")) {
+                    insSess.setString(1, identityUuid);
+                    insSess.setString(2, primaryAltUuid);
+                    insSess.executeUpdate();
+                }
+            }
+
+            // 4) Auto-load inventory for the active alt (if any)
+            api.loadActiveAltInventory(player);
+
         } catch (Exception e) {
-            api.getPlugin().getLogger().warning("Failed ensuring primary alt for " + identityUuid + ": " + e.getMessage());
+            api.getPlugin().getLogger().warning("Failed ensuring primary alt / autoload for " + identityUuid + ": " + e.getMessage());
             e.printStackTrace();
+        }
+    }
+
+    /**
+     * Handles player quits by automatically saving the active alt's inventory.
+     *
+     * @param event Bukkit player quit event
+     */
+    @EventHandler
+    public void onPlayerQuit(PlayerQuitEvent event) {
+        Player player = event.getPlayer();
+        boolean ok = api.saveActiveAltInventory(player);
+        if (!ok) {
+            api.getPlugin().getLogger().fine("No active alt or nothing to save for " + player.getUniqueId());
         }
     }
 }

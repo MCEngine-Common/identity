@@ -7,6 +7,8 @@ import io.github.mcengine.common.identity.database.sqlite.MCEngineIdentitySQLite
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
+import org.bukkit.util.io.BukkitObjectInputStream;
+import org.bukkit.util.io.BukkitObjectOutputStream;
 
 import java.io.ByteArrayOutputStream;
 import java.io.ByteArrayInputStream;
@@ -75,27 +77,39 @@ public class MCEngineIdentityCommon {
     }
 
     // -------------------------------------------------
-    // Inventory serialization helpers (example feature)
+    // Inventory serialization helpers (updated)
     // -------------------------------------------------
 
     /**
-     * Serializes the given inventory to a compact byte[] using Java serialization.
-     * This is a simple example; production systems may prefer a format like NBT or JSON.
+     * Serializes the given inventory to a compact byte[] using Bukkit's object
+     * streams. This avoids {@link java.io.NotSerializableException} for
+     * {@code CraftItemStack}.
      */
     private byte[] serializeInventory(ItemStack[] contents) throws Exception {
         try (ByteArrayOutputStream bos = new ByteArrayOutputStream();
-             ObjectOutputStream out = new ObjectOutputStream(bos)) {
-            out.writeObject(contents);
+             BukkitObjectOutputStream out = new BukkitObjectOutputStream(bos)) {
+            out.writeInt(contents.length);
+            for (ItemStack item : contents) {
+                out.writeObject(item);
+            }
             out.flush();
             return bos.toByteArray();
         }
     }
 
-    /** Deserializes an inventory previously serialized by {@link #serializeInventory(ItemStack[])}. */
+    /**
+     * Deserializes an inventory previously serialized by
+     * {@link #serializeInventory(ItemStack[])} using Bukkit's object streams.
+     */
     private ItemStack[] deserializeInventory(byte[] data) throws Exception {
         try (ByteArrayInputStream bis = new ByteArrayInputStream(data);
-             ObjectInputStream in = new ObjectInputStream(bis)) {
-            return (ItemStack[]) in.readObject();
+             BukkitObjectInputStream in = new BukkitObjectInputStream(bis)) {
+            int len = in.readInt();
+            ItemStack[] out = new ItemStack[len];
+            for (int i = 0; i < len; i++) {
+                out[i] = (ItemStack) in.readObject();
+            }
+            return out;
         }
     }
 

@@ -14,7 +14,7 @@ import org.bukkit.entity.Player;
  *     <li>{@code saveinv}</li>
  *     <li>{@code loadinv}</li>
  *     <li>{@code alt create}</li>
- *     <li>{@code alt switch &lt;altUuid&gt;}</li>
+ *     <li>{@code alt switch &lt;altUuid&gt;} (auto-saves current and auto-loads target)</li>
  *     <li>{@code alt name &lt;altUuid&gt; &lt;name|null&gt;}</li>
  * </ul>
  */
@@ -68,8 +68,18 @@ public class MCEngineIdentityCommand implements CommandExecutor {
                     return true;
                 } else if (op.equals("switch")) {
                     if (args.length < 3) { sender.sendMessage("Usage: /identity alt switch <altUuid>"); return true; }
-                    boolean ok = MCEngineIdentityCommon.getApi().changeProfileAlt(p, args[2]);
-                    sender.sendMessage(ok ? "Switched active alt." : "Failed to switch alt.");
+
+                    // Auto-save current
+                    MCEngineIdentityCommon.getApi().saveActiveAltInventory(p);
+                    // Switch session
+                    boolean switched = MCEngineIdentityCommon.getApi().changeProfileAlt(p, args[2]);
+                    if (!switched) {
+                        sender.sendMessage("Failed to switch alt.");
+                        return true;
+                    }
+                    // Auto-load target
+                    boolean loaded = MCEngineIdentityCommon.getApi().loadActiveAltInventory(p);
+                    sender.sendMessage(loaded ? "Switched alt and loaded inventory." : "Switched alt (no stored inventory).");
                     return true;
                 } else if (op.equals("name")) {
                     if (args.length < 4) { sender.sendMessage("Usage: /identity alt name <altUuid> <name|null>"); return true; }
