@@ -1,0 +1,63 @@
+# LICENSE
+
+MCEngine - GNU General Public License v3.0
+
+This software is licensed under the GNU General Public License, version 3 (GPLv3).
+
+---
+
+## Clear Identity
+This project and all associated source code are part of the **MCEngine** ecosystem.
+
+Original Author: **MCEngine**  
+Website: **https://mcengine-website.github.io/identity**
+
+---
+
+## Preamble
+The GNU General Public License is a free, copyleft license for software and other kinds of works.  
+The terms below guarantee your freedom to use, share, and change the software, ensuring it remains free for all users.
+
+---
+
+## Terms and Conditions
+
+### 0. Definitions
+“This License” refers to version 3 of the GNU General Public License.  
+“You” refers to each licensee of the software.  
+“The Program” refers to any copyrightable work licensed under this License.
+
+### 1. Source Code
+You may use, study, modify, and share the source code of this Program under the conditions set forth below.
+
+### 2. Copying and Distribution
+You may copy and distribute verbatim copies of this Program’s source code as you receive it, provided that:
+- Each copy retains all copyright notices and disclaimers.
+- Each copy clearly identifies this License and the original author.
+
+### 3. Modification
+You may modify your copy of the Program and distribute your modifications under the terms of this License, provided that:
+- You must license your modifications under GPLv3 as well.
+- You must state prominent notices describing the changes you made.
+- The modified Program must carry clear notices stating it is a modified version.
+
+### 4. No Additional Restrictions
+You may not impose any further restrictions on the rights granted by this License.
+
+### 5. Warranty Disclaimer
+THIS PROGRAM IS PROVIDED “AS IS,” WITHOUT WARRANTY OF ANY KIND.  
+The entire risk as to the quality and performance of the Program is with you.
+
+### 6. Limitation of Liability
+IN NO EVENT UNLESS REQUIRED BY APPLICABLE LAW OR AGREED TO IN WRITING WILL ANY COPYRIGHT HOLDER BE LIABLE FOR DAMAGES ARISING FROM THE USE OF THIS PROGRAM.
+
+---
+
+## Copyleft
+All redistributions and derivative works must remain licensed under GPLv3, preserving the same freedoms.
+
+---
+
+## Full License Text
+For the complete, legally binding text of the GNU General Public License version 3, please see:  
+https://www.gnu.org/licenses/gpl-3.0.txt
