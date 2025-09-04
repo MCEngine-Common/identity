@@ -1,0 +1,119 @@
+plugins {
+    id 'java'
+    id 'com.gradleup.shadow' version '9.1.0'
+    id 'maven-publish'
+}
+
+// Set project version using a property
+version = project.properties[project.name + '.version']
+group = 'io.github.mcengine'
+
+ext {
+    // User
+    user_git_name = System.getenv('USER_GIT_NAME')
+    user_github_token = System.getenv('USER_GITHUB_TOKEN')
+
+    // Organization
+    organization_id = System.getenv('ORGANIZATION_ID')
+    organization_name = System.getenv('ORGANIZATION_NAME') ?: 'MCEngine-Common'
+    organization_token = System.getenv('ORGANIZATION_TOKEN')
+
+    // Repository
+    repository_id = System.getenv('REPOSITORY_ID')
+    repository_name = System.getenv('REPOSITORY_NAME') ?: 'identity'
+    repository_token = System.getenv('REPOSITORY_TOKEN')
+
+    // Project Information
+    jarName = System.getenv('PROJECT_NAME') ?: "MCEngine${repository_name.capitalize()}"
+}
+
+repositories {
+    mavenCentral()
+    mavenLocal()
+
+    maven {
+        url = 'https://hub.spigotmc.org/nexus/content/repositories/snapshots'
+        content {
+            includeGroup 'org.bukkit'
+            includeGroup 'org.spigotmc'
+        }
+    }
+
+    maven {
+        name = "papermc"
+        url = 'https://repo.papermc.io/repository/maven-public/'
+    }
+
+    maven { url = 'https://oss.sonatype.org/content/repositories/snapshots' }
+    maven { url = 'https://oss.sonatype.org/content/repositories/central' }
+
+    ext.configureGitHubRepo = { repoName, repoUrl ->
+        maven {
+            name = repoName
+            url = uri(repoUrl)
+            credentials {
+                username = user_git_name
+                password = user_github_token ?: repository_token ?: organization_token
+            }
+        }
+    }
+
+    configureGitHubRepo('MCEngine Artifact API', "https://maven.pkg.github.com/MCEngine-API/${repository_name}")
+}
+
+dependencies {
+    compileOnly 'org.spigotmc:spigot-api:1.21.8-R0.1-SNAPSHOT'
+    compileOnly "io.github.mcengine:${repository_name}-api:2025.0.9-4"
+}
+
+shadowJar {
+    version = version
+    archiveClassifier = null
+    archiveBaseName = jarName
+}
+
+tasks.named('jar').configure {
+    enabled = false
+}
+
+publishing {
+    repositories {
+        maven {
+            name = 'GitHubPackages'
+            url = uri("https://maven.pkg.github.com/${organization_name}/${repository_name}")
+            credentials {
+                username = user_git_name
+                password = user_github_token ?: repository_token ?: organization_token
+            }
+        }
+    }
+    publications {
+        mavenJava(MavenPublication) {
+            artifact tasks.named('shadowJar').get()
+            artifactId = "${repository_name}-common"
+
+            pom {
+                name.set(jarName)
+                description.set("The ${jarName} Common is designed for use by Artifact plugin.")
+                url.set("https://github.com/${organization_name}/${repository_name}")
+
+                scm {
+                    connection.set("scm:git:git://github.com/${organization_name}/${repository_name}.git")
+                    developerConnection.set("scm:git:ssh://github.com:${organization_name}/${repository_name}.git")
+                    url.set("https://github.com/${organization_name}/${repository_name}")
+                }
+
+                developers {
+                    developer {
+                        id.set('jetsadawijit')
+                        name.set('Jetsada Wijit')
+                        email.set('jetsadawijit@outlook.com')
+                        url.set('https://jetsadawijit.github.io')
+                    }
+                }
+            }
+        }
+    }
+}
+
+build.dependsOn(shadowJar)
