@@ -4,6 +4,9 @@ import io.github.mcengine.common.identity.MCEngineIdentityCommon;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.inventory.InventoryCloseEvent;
+import org.bukkit.event.inventory.InventoryOpenEvent;
+import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 
@@ -13,10 +16,15 @@ import java.sql.ResultSet;
 import java.sql.Timestamp;
 
 /**
- * Listens for player join/quit events, ensures the primary alternative
- * identifier <code>{uuid}-0</code> exists for each player, and performs
- * automatic inventory load/save on join/quit so players don't have to run
- * commands manually.
+ * Listens for player lifecycle and inventory events:
+ * <ul>
+ *     <li>On join: ensure main identity and primary alt <code>{uuid}-0</code> exist, ensure session row,
+ *     and auto-load active alt inventory.</li>
+ *     <li>On quit: auto-save active alt inventory.</li>
+ *     <li>On inventory open (player crafting view): auto-load active alt inventory.</li>
+ *     <li>On inventory close (player crafting view): auto-save active alt inventory.</li>
+ * </ul>
+ * This removes the need for players to run manual save/load commands.
  */
 public class MCEngineIdentityListener implements Listener {
 
@@ -141,6 +149,35 @@ public class MCEngineIdentityListener implements Listener {
         boolean ok = api.saveActiveAltInventory(player);
         if (!ok) {
             api.getPlugin().getLogger().fine("No active alt or nothing to save for " + player.getUniqueId());
+        }
+    }
+
+    /**
+     * When a player opens their own crafting (player) inventory, auto-load the
+     * active alt inventory so it is always in sync without manual commands.
+     *
+     * @param event Bukkit inventory open event
+     */
+    @EventHandler
+    public void onInventoryOpen(InventoryOpenEvent event) {
+        if (!(event.getPlayer() instanceof Player player)) return;
+        // Only react to the player's main (crafting) inventory screen
+        if (event.getInventory().getType() == InventoryType.CRAFTING) {
+            api.loadActiveAltInventory(player);
+        }
+    }
+
+    /**
+     * When a player closes their crafting (player) inventory, auto-save the
+     * active alt inventory so changes persist automatically.
+     *
+     * @param event Bukkit inventory close event
+     */
+    @EventHandler
+    public void onInventoryClose(InventoryCloseEvent event) {
+        if (!(event.getPlayer() instanceof Player player)) return;
+        if (event.getInventory().getType() == InventoryType.CRAFTING) {
+            api.saveActiveAltInventory(player);
         }
     }
 }
