@@ -6,12 +6,12 @@ import org.bukkit.plugin.Plugin;
 
 import java.sql.*;
 import java.time.Instant;
-import java.util.UUID;
 
 /**
  * MySQL implementation for the Identity module database.
  * <p>
  * Establishes a persistent connection and ensures tables exist according to the provided schema.
+ * Enforces {@code identity.identity_limit} when creating new alternatives.
  */
 public class MCEngineIdentityMySQL implements IMCEngineIdentityDB {
 
@@ -105,13 +105,17 @@ public class MCEngineIdentityMySQL implements IMCEngineIdentityDB {
         return conn;
     }
 
+    /**
+     * Creates a new alternative for the player's identity, enforcing {@code identity_limit}.
+     * If current alternative count is already at or above the limit, returns {@code null}.
+     */
     @Override
     public String createProfileAlt(org.bukkit.entity.Player player) {
         if (conn == null) return null;
         String identityUuid = player.getUniqueId().toString();
         Timestamp now = Timestamp.from(Instant.now());
         try {
-            // upsert identity
+            // upsert identity (ensures a row with default limit=1 exists)
             try (PreparedStatement ps = conn.prepareStatement(
                     "INSERT INTO identity (identity_uuid, identity_limit, identity_created_at, identity_updated_at) " +
                             "VALUES (?, 1, ?, ?) ON DUPLICATE KEY UPDATE identity_updated_at = VALUES(identity_updated_at)")) {
@@ -120,16 +124,35 @@ public class MCEngineIdentityMySQL implements IMCEngineIdentityDB {
                 ps.setTimestamp(3, now);
                 ps.executeUpdate();
             }
-            // compute next alt index
-            int nextIdx = 0;
+
+            // fetch limit
+            int limit = 1;
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "SELECT identity_limit FROM identity WHERE identity_uuid = ?")) {
+                ps.setString(1, identityUuid);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) limit = rs.getInt(1);
+                }
+            }
+
+            // current count
+            int count = 0;
             try (PreparedStatement ps = conn.prepareStatement(
                     "SELECT COUNT(*) FROM identity_alternative WHERE identity_uuid = ?")) {
                 ps.setString(1, identityUuid);
                 try (ResultSet rs = ps.executeQuery()) {
-                    if (rs.next()) nextIdx = rs.getInt(1);
+                    if (rs.next()) count = rs.getInt(1);
                 }
             }
-            String altUuid = identityUuid + "-" + nextIdx;
+
+            // enforce limit
+            if (count >= limit) {
+                plugin.getLogger().info("Alt creation blocked for " + identityUuid + " (limit " + limit + ").");
+                return null;
+            }
+
+            // next alt index = count
+            String altUuid = identityUuid + "-" + count;
             try (PreparedStatement ps = conn.prepareStatement(
                     "INSERT INTO identity_alternative (identity_alternative_uuid, identity_uuid, identity_alternative_name, identity_alternative_storage, identity_alternative_created_at, identity_alternative_updated_at) " +
                             "VALUES (?,?,?,?,?,?)")) {
