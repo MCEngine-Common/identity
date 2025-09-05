@@ -12,9 +12,6 @@ import org.bukkit.util.io.BukkitObjectOutputStream;
 
 import java.io.ByteArrayOutputStream;
 import java.io.ByteArrayInputStream;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.sql.*;
 
 /**
  * The {@code MCEngineIdentityCommon} class wires a Bukkit {@link Plugin} to an
@@ -76,6 +73,28 @@ public class MCEngineIdentityCommon {
         return db.setProfileAltname(player, altUuid, alt_name);
     }
 
+    /**
+     * Fetches the display name of an alt belonging to the player, or {@code null} if unset/not found.
+     *
+     * @param player  owner of the identity
+     * @param altUuid alt UUID (e.g., {@code {uuid}-N})
+     * @return display name, or {@code null}
+     */
+    public String getProfileAltName(Player player, String altUuid) {
+        return db.getProfileAltName(player, altUuid);
+    }
+
+    /**
+     * Increases the identity alt limit for the target player by {@code amount}.
+     *
+     * @param target the player whose limit to increase
+     * @param amount non-negative increment
+     * @return {@code true} if updated
+     */
+    public boolean addLimit(Player target, int amount) {
+        return db.addLimit(target, amount);
+    }
+
     // -------------------------------------------------
     // Inventory serialization helpers (updated)
     // -------------------------------------------------
@@ -118,29 +137,9 @@ public class MCEngineIdentityCommon {
      * for the active alt recorded in {@code identity_session}. Returns {@code true} if persisted.
      */
     public boolean saveActiveAltInventory(Player player) {
-        Connection c = db.getDBConnection();
-        if (c == null) return false;
-        String identityUuid = player.getUniqueId().toString();
         try {
-            String altUuid = null;
-            try (PreparedStatement ps = c.prepareStatement(
-                    "SELECT identity_alternative_uuid FROM identity_session WHERE identity_uuid = ?")) {
-                ps.setString(1, identityUuid);
-                try (ResultSet rs = ps.executeQuery()) {
-                    if (rs.next()) altUuid = rs.getString(1);
-                }
-            }
-            if (altUuid == null) return false;
-
             byte[] payload = serializeInventory(player.getInventory().getContents());
-            try (PreparedStatement up = c.prepareStatement(
-                    "UPDATE identity_alternative SET identity_alternative_storage = ?, identity_alternative_updated_at = CURRENT_TIMESTAMP " +
-                            "WHERE identity_alternative_uuid = ? AND identity_uuid = ?")) {
-                up.setBytes(1, payload);
-                up.setString(2, altUuid);
-                up.setString(3, identityUuid);
-                return up.executeUpdate() > 0;
-            }
+            return db.saveAltInventory(player, payload);
         } catch (Exception e) {
             plugin.getLogger().warning("Failed to save inventory: " + e.getMessage());
             e.printStackTrace();
@@ -153,31 +152,9 @@ public class MCEngineIdentityCommon {
      * Returns {@code true} if loaded.
      */
     public boolean loadActiveAltInventory(Player player) {
-        Connection c = db.getDBConnection();
-        if (c == null) return false;
-        String identityUuid = player.getUniqueId().toString();
         try {
-            String altUuid = null;
-            try (PreparedStatement ps = c.prepareStatement(
-                    "SELECT identity_alternative_uuid FROM identity_session WHERE identity_uuid = ?")) {
-                ps.setString(1, identityUuid);
-                try (ResultSet rs = ps.executeQuery()) {
-                    if (rs.next()) altUuid = rs.getString(1);
-                }
-            }
-            if (altUuid == null) return false;
-
-            byte[] payload = null;
-            try (PreparedStatement ps = c.prepareStatement(
-                    "SELECT identity_alternative_storage FROM identity_alternative WHERE identity_alternative_uuid = ? AND identity_uuid = ?")) {
-                ps.setString(1, altUuid);
-                ps.setString(2, identityUuid);
-                try (ResultSet rs = ps.executeQuery()) {
-                    if (rs.next()) payload = rs.getBytes(1);
-                }
-            }
+            byte[] payload = db.loadAltInventory(player);
             if (payload == null) return false;
-
             ItemStack[] restored = deserializeInventory(payload);
             player.getInventory().setContents(restored);
             player.updateInventory();

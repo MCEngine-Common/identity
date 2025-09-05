@@ -219,4 +219,111 @@ public class MCEngineIdentityMySQL implements IMCEngineIdentityDB {
             return false;
         }
     }
+
+    @Override
+    public String getProfileAltName(Player player, String altUuid) {
+        if (conn == null) return null;
+        String identityUuid = player.getUniqueId().toString();
+        try (PreparedStatement ps = conn.prepareStatement(
+                "SELECT identity_alternative_name FROM identity_alternative WHERE identity_alternative_uuid = ? AND identity_uuid = ?")) {
+            ps.setString(1, altUuid);
+            ps.setString(2, identityUuid);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return rs.getString(1);
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().warning("getProfileAltName failed: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    @Override
+    public boolean addLimit(Player player, int amount) {
+        if (conn == null || amount < 0) return false;
+        String identityUuid = player.getUniqueId().toString();
+        Timestamp now = Timestamp.from(Instant.now());
+        try {
+            // ensure identity row
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "INSERT INTO identity (identity_uuid, identity_limit, identity_created_at, identity_updated_at) " +
+                            "VALUES (?, 1, ?, ?) ON DUPLICATE KEY UPDATE identity_updated_at = VALUES(identity_updated_at)")) {
+                ps.setString(1, identityUuid);
+                ps.setTimestamp(2, now);
+                ps.setTimestamp(3, now);
+                ps.executeUpdate();
+            }
+            // increment limit
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "UPDATE identity SET identity_limit = identity_limit + ? WHERE identity_uuid = ?")) {
+                ps.setInt(1, amount);
+                ps.setString(2, identityUuid);
+                return ps.executeUpdate() > 0;
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().warning("addLimit failed: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    @Override
+    public boolean saveAltInventory(Player player, byte[] payload) {
+        if (conn == null) return false;
+        String identityUuid = player.getUniqueId().toString();
+        try {
+            String altUuid = null;
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "SELECT identity_alternative_uuid FROM identity_session WHERE identity_uuid = ?")) {
+                ps.setString(1, identityUuid);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) altUuid = rs.getString(1);
+                }
+            }
+            if (altUuid == null) return false;
+
+            try (PreparedStatement up = conn.prepareStatement(
+                    "UPDATE identity_alternative SET identity_alternative_storage = ?, identity_alternative_updated_at = CURRENT_TIMESTAMP " +
+                            "WHERE identity_alternative_uuid = ? AND identity_uuid = ?")) {
+                up.setBytes(1, payload);
+                up.setString(2, altUuid);
+                up.setString(3, identityUuid);
+                return up.executeUpdate() > 0;
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().warning("saveAltInventory failed: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    @Override
+    public byte[] loadAltInventory(Player player) {
+        if (conn == null) return null;
+        String identityUuid = player.getUniqueId().toString();
+        try {
+            String altUuid = null;
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "SELECT identity_alternative_uuid FROM identity_session WHERE identity_uuid = ?")) {
+                ps.setString(1, identityUuid);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) altUuid = rs.getString(1);
+                }
+            }
+            if (altUuid == null) return null;
+
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "SELECT identity_alternative_storage FROM identity_alternative WHERE identity_alternative_uuid = ? AND identity_uuid = ?")) {
+                ps.setString(1, altUuid);
+                ps.setString(2, identityUuid);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) return rs.getBytes(1);
+                }
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().warning("loadAltInventory failed: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return null;
+    }
 }

@@ -1,13 +1,14 @@
 package io.github.mcengine.common.identity.database;
 
 import org.bukkit.entity.Player;
+
 import java.sql.Connection;
 
 /**
  * Minimal persistence contract for the Identity module.
  * <p>
  * Exposes a JDBC {@link Connection} and higher-level operations for
- * creating/switching alts and setting an alt's display name.
+ * creating/switching alts, naming, limits, and active-alt inventory I/O.
  */
 public interface IMCEngineIdentityDB {
 
@@ -47,4 +48,40 @@ public interface IMCEngineIdentityDB {
      * @return true if updated, false otherwise
      */
     boolean setProfileAltname(Player player, String altUuid, String altName);
+
+    /**
+     * Fetches the display name of an alternative belonging to the given player.
+     *
+     * @param player  owner of the identity
+     * @param altUuid alternative UUID
+     * @return display name or {@code null} if unset/not found
+     */
+    String getProfileAltName(Player player, String altUuid);
+
+    /**
+     * Increases the identity alt limit for the given player by {@code amount}.
+     * Implementations should upsert the identity row if it does not exist.
+     *
+     * @param player the player whose limit to change
+     * @param amount non-negative increment
+     * @return {@code true} if updated/persisted
+     */
+    boolean addLimit(Player player, int amount);
+
+    /**
+     * Persists a serialized inventory payload for the active alt recorded in {@code identity_session}.
+     *
+     * @param player  the player whose active alt to persist
+     * @param payload opaque, serialized inventory bytes
+     * @return {@code true} if written
+     */
+    boolean saveAltInventory(Player player, byte[] payload);
+
+    /**
+     * Loads the serialized inventory payload for the player's currently active alt, if present.
+     *
+     * @param player the player whose active alt to load
+     * @return inventory bytes, or {@code null} when no data is stored
+     */
+    byte[] loadAltInventory(Player player);
 }

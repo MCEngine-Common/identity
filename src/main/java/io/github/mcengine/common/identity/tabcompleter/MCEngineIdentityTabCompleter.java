@@ -1,6 +1,7 @@
 package io.github.mcengine.common.identity.tabcompleter;
 
 import io.github.mcengine.common.identity.MCEngineIdentityCommon;
+import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
@@ -19,10 +20,12 @@ import java.util.Locale;
  * <p>
  * Completion paths:
  * <ul>
- *     <li><b>/identity</b> → {@code alt}</li>
+ *     <li><b>/identity</b> → {@code alt}, {@code limit}</li>
  *     <li><b>/identity alt</b> → {@code create}, {@code switch}, {@code name}</li>
  *     <li><b>/identity alt switch</b> → suggests player's alts (name if set, otherwise {@code {uuid}-N})</li>
  *     <li><b>/identity alt name &lt;altUuid&gt;</b> → suggests player's alts (name if set, otherwise {@code {uuid}-N}), then {@code &lt;name|null&gt;}</li>
+ *     <li><b>/identity limit</b> → {@code add}</li>
+ *     <li><b>/identity limit add</b> → suggests online player names, then an amount</li>
  * </ul>
  */
 public class MCEngineIdentityTabCompleter implements TabCompleter {
@@ -42,31 +45,49 @@ public class MCEngineIdentityTabCompleter implements TabCompleter {
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (!command.getName().equalsIgnoreCase("identity")) return Collections.emptyList();
-        if (!(sender instanceof Player player)) return Collections.emptyList();
 
         // /identity
         if (args.length == 1) {
-            return filterPrefix(args[0], List.of("alt"));
+            return filterPrefix(args[0], List.of("alt", "limit"));
         }
 
         // /identity alt ...
         if (args.length >= 2 && "alt".equalsIgnoreCase(args[0])) {
+            if (!(sender instanceof Player)) return Collections.emptyList();
+
             if (args.length == 2) {
                 return filterPrefix(args[1], List.of("create", "switch", "name"));
             }
 
             // /identity alt switch <alt>
             if (args.length == 3 && "switch".equalsIgnoreCase(args[1])) {
-                return filterPrefix(args[2], fetchPlayerAlts(player));
+                return filterPrefix(args[2], fetchPlayerAlts((Player) sender));
             }
 
             // /identity alt name <alt> <name|null>
             if ("name".equalsIgnoreCase(args[1])) {
                 if (args.length == 3) {
-                    return filterPrefix(args[2], fetchPlayerAlts(player));
+                    return filterPrefix(args[2], fetchPlayerAlts((Player) sender));
                 } else if (args.length == 4) {
                     return filterPrefix(args[3], List.of("null"));
                 }
+            }
+        }
+
+        // /identity limit ...
+        if (args.length >= 2 && "limit".equalsIgnoreCase(args[0])) {
+            if (args.length == 2) {
+                return filterPrefix(args[1], List.of("add"));
+            }
+            if (args.length == 3 && "add".equalsIgnoreCase(args[1])) {
+                // suggest online player names
+                List<String> names = new ArrayList<>();
+                for (Player p : Bukkit.getOnlinePlayers()) names.add(p.getName());
+                return filterPrefix(args[2], names);
+            }
+            if (args.length == 4 && "add".equalsIgnoreCase(args[1])) {
+                // suggest a few common amounts
+                return filterPrefix(args[3], List.of("1", "2", "3", "5", "10"));
             }
         }
 
