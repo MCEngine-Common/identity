@@ -59,8 +59,14 @@ public class MCEngineIdentityCommand implements CommandExecutor {
             }
             String op = args[1].toLowerCase();
             if (op.equals("create")) {
+                // Read limit (for better messaging) and rely on DB to enforce.
+                int limit = api.getDB().getLimit(p);
                 String alt = MCEngineIdentityCommon.getApi().createProfileAlt(p);
-                sender.sendMessage(alt != null ? ("Created alt: " + alt) : "Failed to create alt.");
+                if (alt != null) {
+                    sender.sendMessage("Created alt: " + alt);
+                } else {
+                    sender.sendMessage("Failed to create alt. You may have reached your limit (" + limit + ").");
+                }
                 return true;
             } else if (op.equals("switch")) {
                 if (args.length < 3) { sender.sendMessage("Usage: /identity alt switch <altUuid>"); return true; }

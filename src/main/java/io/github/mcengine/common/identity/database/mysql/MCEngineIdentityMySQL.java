@@ -268,6 +268,36 @@ public class MCEngineIdentityMySQL implements IMCEngineIdentityDB {
     }
 
     @Override
+    public int getLimit(Player player) {
+        if (conn == null) return 1;
+        String identityUuid = player.getUniqueId().toString();
+        Timestamp now = Timestamp.from(Instant.now());
+        try {
+            // upsert identity if missing (default limit=1)
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "INSERT INTO identity (identity_uuid, identity_limit, identity_created_at, identity_updated_at) " +
+                            "VALUES (?, 1, ?, ?) ON DUPLICATE KEY UPDATE identity_updated_at = VALUES(identity_updated_at)")) {
+                ps.setString(1, identityUuid);
+                ps.setTimestamp(2, now);
+                ps.setTimestamp(3, now);
+                ps.executeUpdate();
+            }
+            // read limit
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "SELECT identity_limit FROM identity WHERE identity_uuid = ?")) {
+                ps.setString(1, identityUuid);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) return rs.getInt(1);
+                }
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().warning("getLimit failed: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return 1;
+    }
+
+    @Override
     public boolean saveAltInventory(Player player, byte[] payload) {
         if (conn == null) return false;
         String identityUuid = player.getUniqueId().toString();

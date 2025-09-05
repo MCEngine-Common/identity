@@ -69,6 +69,15 @@ public interface IMCEngineIdentityDB {
     boolean addLimit(Player player, int amount);
 
     /**
+     * Returns the configured alt limit for the player's identity. Implementations should
+     * upsert an identity row when absent and return the effective limit (default {@code 1}).
+     *
+     * @param player the player whose limit to read
+     * @return the current limit (>= 1)
+     */
+    int getLimit(Player player);
+
+    /**
      * Persists a serialized inventory payload for the active alt recorded in {@code identity_session}.
      *
      * @param player  the player whose active alt to persist
