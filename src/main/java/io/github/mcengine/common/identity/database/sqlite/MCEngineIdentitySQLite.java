@@ -114,6 +114,23 @@ public class MCEngineIdentitySQLite implements IMCEngineIdentityDB {
         return conn;
     }
 
+    @Override
+    public int getProfileCount(Player player) {
+        if (conn == null) return 0;
+        String identityUuid = player.getUniqueId().toString();
+        try (PreparedStatement ps = conn.prepareStatement(
+                "SELECT COUNT(*) FROM identity_alternative WHERE identity_uuid = ?")) {
+            ps.setString(1, identityUuid);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return rs.getInt(1);
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().warning("getProfileCount failed: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
     /**
      * Creates a new alternative for the player's identity, enforcing {@code identity_limit}.
      * If current alternative count is already at or above the limit, returns {@code null}.

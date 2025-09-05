@@ -26,7 +26,7 @@ import org.bukkit.entity.Player;
  */
 public class MCEngineIdentityCommand implements CommandExecutor {
 
-    /** Identity common API used to perform operations. */
+    /** Identity common API used to perform all identity and alt operations. */
     private final MCEngineIdentityCommon api;
 
     /**
@@ -215,7 +215,8 @@ public class MCEngineIdentityCommand implements CommandExecutor {
                     }
                     Player self = (Player) sender;
                     int limit = api.getLimit(self);
-                    sender.sendMessage("Your identity limit: " + limit);
+                    int altCount = api.getProfileCount(self);
+                    sender.sendMessage("Your identity count: " + altCount + " (limit " + limit + ")");
                     return true;
                 }
 
@@ -231,7 +232,8 @@ public class MCEngineIdentityCommand implements CommandExecutor {
                         return true;
                     }
                     int limit = api.getLimit(target);
-                    sender.sendMessage(target.getName() + "'s identity limit: " + limit);
+                    int altCount = api.getProfileCount(target);
+                    sender.sendMessage(target.getName() + "'s identity count: " + altCount + " (limit " + limit + ")");
                     return true;
                 }
             }

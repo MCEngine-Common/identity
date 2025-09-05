@@ -81,6 +81,14 @@ public interface IMCEngineIdentityDB {
     java.util.List<String> getProfileAllAlt(Player player);
 
     /**
+     * Returns the number of alternatives owned by the player's identity (including the primary {@code {uuid}-0}).
+     *
+     * @param player Bukkit player
+     * @return count of rows in {@code identity_alternative} for the player's {@code identity_uuid}
+     */
+    int getProfileCount(org.bukkit.entity.Player player);
+
+    /**
      * Resolves an alt UUID from its display name for the given player.
      *
      * @param player Bukkit player

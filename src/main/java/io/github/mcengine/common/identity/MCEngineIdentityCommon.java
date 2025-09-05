@@ -95,6 +95,17 @@ public class MCEngineIdentityCommon {
     }
 
     /**
+     * Returns the number of alternatives currently stored for the player's identity
+     * (i.e., rows in {@code identity_alternative} for the player's {@code identity_uuid}).
+     *
+     * @param player Bukkit player
+     * @return total alt count (including the primary {@code {uuid}-0})
+     */
+    public int getProfileCount(Player player) {
+        return db.getProfileCount(player);
+    }
+
+    /**
      * Fetches the display name of an alt belonging to the player, or {@code null} if unset/not found.
      *
      * @param player  owner of the identity
