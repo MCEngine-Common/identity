@@ -152,6 +152,13 @@ public class MCEngineIdentityCommand implements CommandExecutor {
                         return true;
                     }
 
+                    // Prevent UNIQUE constraint violation: ensure no other alt already uses newName
+                    String conflictAlt = api.getProfileAltUuidByName(p, newName);
+                    if (conflictAlt != null && !conflictAlt.isEmpty() && !conflictAlt.equals(altUuid)) {
+                        sender.sendMessage("That name is already in use by another alt.");
+                        return true;
+                    }
+
                     boolean ok = MCEngineIdentityCommon.getApi().setProfileAltname(p, altUuid, newName);
                     if (ok) {
                         sender.sendMessage("Renamed alt '" + oldName + "' to '" + newName + "'.");
