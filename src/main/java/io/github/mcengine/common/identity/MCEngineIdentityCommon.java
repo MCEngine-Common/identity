@@ -95,6 +95,16 @@ public class MCEngineIdentityCommon {
         return db.addLimit(target, amount);
     }
 
+    /** 
+     * Returns the current alt limit for the player's identity. 
+     *
+     * @param player Bukkit player
+     * @return the maximum number of alts allowed for this identity
+     */
+    public int getLimit(Player player) {
+        return db.getLimit(player);
+    }
+
     // -------------------------------------------------
     // Inventory serialization helpers (updated)
     // -------------------------------------------------
