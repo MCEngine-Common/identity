@@ -10,21 +10,16 @@ import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.Timestamp;
-
 /**
  * Listens for player lifecycle and inventory events:
  * <ul>
- *     <li>On join: ensure main identity and primary alt <code>{uuid}-0</code> exist, ensure session row,
- *     and auto-load active alt inventory.</li>
+ *     <li>On join: ensures identity + primary alt + session via {@code api.ensureExist(player)},
+ *     and auto-loads the active alt inventory.</li>
  *     <li>On quit: auto-save active alt inventory.</li>
  *     <li>On inventory open (player crafting view): auto-load active alt inventory.</li>
  *     <li>On inventory close (player crafting view): auto-save active alt inventory.</li>
  * </ul>
- * This removes the need for players to run manual save/load commands.
+ * This removes the need for players to run manual save/load commands and avoids direct SQL here.
  */
 public class MCEngineIdentityListener implements Listener {
 
@@ -41,99 +36,20 @@ public class MCEngineIdentityListener implements Listener {
     }
 
     /**
-     * Handles player joins:
-     * <ol>
-     *     <li>Ensures {@code identity(identity_uuid)} exists.</li>
-     *     <li>Ensures {@code identity_alternative(identity_alternative_uuid = {uuid}-0)} exists.</li>
-     *     <li>Ensures a {@code identity_session} row exists and points to {@code {uuid}-0} if none present.</li>
-     *     <li>Automatically loads the active alt's inventory into the player, if stored.</li>
-     * </ol>
+     * On player join, ensure their identity structures exist and load the active alt inventory.
      *
      * @param event Bukkit player join event
      */
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
-        String identityUuid = player.getUniqueId().toString();
-        String primaryAltUuid = identityUuid + "-0";
-
-        Connection c = api.getDB().getDBConnection();
-        if (c == null) {
-            api.getPlugin().getLogger().warning("DB connection unavailable; cannot ensure primary alt for " + identityUuid);
-            return;
-        }
-
         try {
-            // 1) Ensure identity row exists
-            boolean hasIdentity = false;
-            try (PreparedStatement chk = c.prepareStatement(
-                    "SELECT 1 FROM identity WHERE identity_uuid = ?")) {
-                chk.setString(1, identityUuid);
-                try (ResultSet rs = chk.executeQuery()) {
-                    hasIdentity = rs.next();
-                }
-            }
-            if (!hasIdentity) {
-                try (PreparedStatement ins = c.prepareStatement(
-                        "INSERT INTO identity (identity_uuid, identity_limit, identity_created_at, identity_updated_at) VALUES (?, 1, ?, ?)")) {
-                    Timestamp now = new Timestamp(System.currentTimeMillis());
-                    ins.setString(1, identityUuid);
-                    ins.setTimestamp(2, now);
-                    ins.setTimestamp(3, now);
-                    ins.executeUpdate();
-                }
-            }
-
-            // 2) Ensure {uuid}-0 alternative exists
-            boolean hasPrimaryAlt = false;
-            try (PreparedStatement chkAlt = c.prepareStatement(
-                    "SELECT 1 FROM identity_alternative WHERE identity_alternative_uuid = ? AND identity_uuid = ?")) {
-                chkAlt.setString(1, primaryAltUuid);
-                chkAlt.setString(2, identityUuid);
-                try (ResultSet rs = chkAlt.executeQuery()) {
-                    hasPrimaryAlt = rs.next();
-                }
-            }
-            if (!hasPrimaryAlt) {
-                try (PreparedStatement insAlt = c.prepareStatement(
-                        "INSERT INTO identity_alternative (" +
-                                "identity_alternative_uuid, identity_uuid, identity_alternative_name, " +
-                                "identity_alternative_storage, identity_alternative_created_at, identity_alternative_updated_at" +
-                                ") VALUES (?,?,?,?,?,?)")) {
-                    Timestamp now = new Timestamp(System.currentTimeMillis());
-                    insAlt.setString(1, primaryAltUuid);
-                    insAlt.setString(2, identityUuid);
-                    insAlt.setNull(3, java.sql.Types.VARCHAR);
-                    insAlt.setNull(4, java.sql.Types.BLOB);
-                    insAlt.setTimestamp(5, now);
-                    insAlt.setTimestamp(6, now);
-                    insAlt.executeUpdate();
-                }
-            }
-
-            // 3) Ensure session row exists; if absent, point to {uuid}-0
-            boolean hasSession = false;
-            try (PreparedStatement chkSess = c.prepareStatement(
-                    "SELECT identity_alternative_uuid FROM identity_session WHERE identity_uuid = ?")) {
-                chkSess.setString(1, identityUuid);
-                try (ResultSet rs = chkSess.executeQuery()) {
-                    hasSession = rs.next();
-                }
-            }
-            if (!hasSession) {
-                try (PreparedStatement insSess = c.prepareStatement(
-                        "INSERT INTO identity_session (identity_uuid, identity_alternative_uuid) VALUES (?, ?)")) {
-                    insSess.setString(1, identityUuid);
-                    insSess.setString(2, primaryAltUuid);
-                    insSess.executeUpdate();
-                }
-            }
-
-            // 4) Auto-load inventory for the active alt (if any)
+            // Consolidated ensure logic (identity, {uuid}-0 alt, session) implemented in the DB layer.
+            api.ensureExist(player);
+            // Auto-load inventory for the active alt (if any)
             api.loadActiveAltInventory(player);
-
         } catch (Exception e) {
-            api.getPlugin().getLogger().warning("Failed ensuring primary alt / autoload for " + identityUuid + ": " + e.getMessage());
+            api.getPlugin().getLogger().warning("Failed during ensure/load for " + player.getUniqueId() + ": " + e.getMessage());
             e.printStackTrace();
         }
     }
