@@ -185,12 +185,18 @@ public class MCEngineIdentityCommon {
 
     /**
      * Loads the active alt's stored inventory (if present) and applies it to the player.
-     * Returns {@code true} if loaded.
+     * If no stored inventory exists, the player's inventory is cleared so the alt starts empty.
+     * Returns {@code true} if an inventory payload was loaded, {@code false} if cleared.
      */
     public boolean loadActiveAltInventory(Player player) {
         try {
             byte[] payload = db.loadAltInventory(player);
-            if (payload == null) return false;
+            if (payload == null) {
+                // No stored inventory for this alt -> start empty
+                player.getInventory().clear();
+                player.updateInventory();
+                return false; // keep caller message: "no stored inventory"
+            }
             ItemStack[] restored = deserializeInventory(payload);
             player.getInventory().setContents(restored);
             player.updateInventory();
