@@ -239,6 +239,29 @@ public class MCEngineIdentityMySQL implements IMCEngineIdentityDB {
     }
 
     @Override
+    public java.util.List<String> getProfileAllAlt(Player player) {
+        java.util.List<String> alts = new java.util.ArrayList<>();
+        if (conn == null) return alts;
+        String identityUuid = player.getUniqueId().toString();
+        try (PreparedStatement ps = conn.prepareStatement(
+                "SELECT identity_alternative_uuid, identity_alternative_name " +
+                "FROM identity_alternative WHERE identity_uuid = ? ORDER BY identity_alternative_uuid ASC")) {
+            ps.setString(1, identityUuid);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String uuid = rs.getString(1);
+                    String name = rs.getString(2);
+                    alts.add((name != null && !name.isEmpty()) ? name : uuid);
+                }
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().warning("getProfileAllAlt failed: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return alts;
+    }
+
+    @Override
     public boolean addLimit(Player player, int amount) {
         if (conn == null || amount < 0) return false;
         String identityUuid = player.getUniqueId().toString();

@@ -59,6 +59,15 @@ public interface IMCEngineIdentityDB {
     String getProfileAltName(Player player, String altUuid);
 
     /**
+     * Returns all alternatives for the player's identity, each entry being the display
+     * name if set, otherwise the alt UUID (e.g., {@code {uuid}-N}). Ordered by UUID asc.
+     *
+     * @param player Bukkit player
+     * @return list of alt identifiers or names (never {@code null})
+     */
+    java.util.List<String> getProfileAllAlt(Player player);
+
+    /**
      * Increases the identity alt limit for the given player by {@code amount}.
      * Implementations should upsert the identity row if it does not exist.
      *

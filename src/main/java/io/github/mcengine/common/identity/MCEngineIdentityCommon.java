@@ -84,6 +84,11 @@ public class MCEngineIdentityCommon {
         return db.getProfileAltName(player, altUuid);
     }
 
+    /** Returns all alt identifiers/names for the player's identity. */
+    public java.util.List<String> getProfileAllAlt(Player player) {
+        return db.getProfileAllAlt(player);
+    }
+
     /**
      * Increases the identity alt limit for the target player by {@code amount}.
      *

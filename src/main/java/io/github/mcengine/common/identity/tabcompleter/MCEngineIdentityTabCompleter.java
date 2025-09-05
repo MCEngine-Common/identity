@@ -6,9 +6,6 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -25,9 +22,8 @@ import java.util.Locale;
  *     <li><b>/identity alt name &lt;altUuid&gt;</b> → suggests player's alts (name if set, otherwise {@code {uuid}-N}), then {@code &lt;name|null&gt;}</li>
  * </ul>
  * <p>
- * Note: For alt display names this class now consults the common API via
- * {@link MCEngineIdentityCommon#getProfileAltName(Player, String)} to avoid
- * touching the DB interface directly.
+ * This implementation resolves alt suggestions through the common API
+ * ({@link MCEngineIdentityCommon#getProfileAllAlt(Player)}), avoiding direct SQL.
  */
 public class MCEngineIdentityTabCompleter implements TabCompleter {
 
@@ -61,13 +57,13 @@ public class MCEngineIdentityTabCompleter implements TabCompleter {
 
             // /identity alt switch <alt>
             if (args.length == 3 && "switch".equalsIgnoreCase(args[1])) {
-                return filterPrefix(args[2], fetchPlayerAlts(player));
+                return filterPrefix(args[2], api.getProfileAllAlt(player));
             }
 
             // /identity alt name <alt> <name|null>
             if ("name".equalsIgnoreCase(args[1])) {
                 if (args.length == 3) {
-                    return filterPrefix(args[2], fetchPlayerAlts(player));
+                    return filterPrefix(args[2], api.getProfileAllAlt(player));
                 } else if (args.length == 4) {
                     return filterPrefix(args[3], List.of("null"));
                 }
@@ -75,37 +71,6 @@ public class MCEngineIdentityTabCompleter implements TabCompleter {
         }
 
         return Collections.emptyList();
-    }
-
-    /**
-     * Fetches all alternatives belonging to the player's identity.
-     * For each alt UUID, resolves the display name via the common API
-     * ({@code api.getProfileAltName}); if the name is unset/empty, falls back
-     * to the alt UUID string.
-     *
-     * @param player the Bukkit player
-     * @return list of alt identifiers or names
-     */
-    private List<String> fetchPlayerAlts(Player player) {
-        Connection c = api.getDB().getDBConnection();
-        if (c == null) return Collections.emptyList();
-
-        List<String> alts = new ArrayList<>();
-        try (PreparedStatement ps = c.prepareStatement(
-                "SELECT identity_alternative_uuid " +
-                        "FROM identity_alternative WHERE identity_uuid = ? ORDER BY identity_alternative_uuid ASC")) {
-            ps.setString(1, player.getUniqueId().toString());
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    String altUuid = rs.getString(1);
-                    String altName = api.getProfileAltName(player, altUuid);
-                    alts.add((altName != null && !altName.isEmpty()) ? altName : altUuid);
-                }
-            }
-        } catch (Exception e) {
-            api.getPlugin().getLogger().warning("TabComplete failed to fetch alts for " + player.getUniqueId() + ": " + e.getMessage());
-        }
-        return alts;
     }
 
     /**
