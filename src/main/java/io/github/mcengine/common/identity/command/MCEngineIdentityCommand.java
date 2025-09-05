@@ -13,7 +13,7 @@ import org.bukkit.entity.Player;
  * Provides subcommands:
  * <ul>
  *     <li>{@code alt create}</li>
- *     <li>{@code alt switch &lt;altUuid&gt;} (auto-saves current and auto-loads target)</li>
+ *     <li>{@code alt switch &lt;altUuid|name&gt;} (auto-saves current and auto-loads target)</li>
  *     <li>{@code alt name &lt;altUuid&gt; &lt;name|null&gt;}</li>
  *     <li>{@code limit add &lt;player&gt; &lt;amount&gt;} (requires {@code mcengine.identity.limit.add})</li>
  *     <li>{@code limit get} (self; requires {@code mcengine.identity.limit.get})</li>
@@ -42,7 +42,7 @@ public class MCEngineIdentityCommand implements CommandExecutor {
         if (!command.getName().equalsIgnoreCase("identity")) return false;
 
         if (args.length == 0) {
-            sender.sendMessage("/identity alt create | alt switch <altUuid> | alt name <altUuid> <name|null> | limit add <player> <amount> | limit get [player]");
+            sender.sendMessage("/identity alt create | alt switch <altUuid|name> | alt name <altUuid> <name|null> | limit add <player> <amount> | limit get [player]");
             return true;
         }
         String sub = args[0].toLowerCase();
@@ -56,7 +56,7 @@ public class MCEngineIdentityCommand implements CommandExecutor {
             Player p = (Player) sender;
 
             if (args.length < 2) {
-                sender.sendMessage("/identity alt create | switch <altUuid> | name <altUuid> <name|null>");
+                sender.sendMessage("/identity alt create | switch <altUuid|name> | name <altUuid> <name|null>");
                 return true;
             }
             String op = args[1].toLowerCase();
@@ -71,12 +71,17 @@ public class MCEngineIdentityCommand implements CommandExecutor {
                 }
                 return true;
             } else if (op.equals("switch")) {
-                if (args.length < 3) { sender.sendMessage("Usage: /identity alt switch <altUuid>"); return true; }
+                if (args.length < 3) { sender.sendMessage("Usage: /identity alt switch <altUuid|name>"); return true; }
+
+                // Resolve display name -> UUID if the user provided a name instead of UUID
+                String token = args[2];
+                String resolved = api.getProfileAltUuidByName(p, token);
+                String targetAltUuid = (resolved != null && !resolved.isEmpty()) ? resolved : token;
 
                 // Auto-save current
                 MCEngineIdentityCommon.getApi().saveActiveAltInventory(p);
                 // Switch session
-                boolean switched = MCEngineIdentityCommon.getApi().changeProfileAlt(p, args[2]);
+                boolean switched = MCEngineIdentityCommon.getApi().changeProfileAlt(p, targetAltUuid);
                 if (!switched) {
                     sender.sendMessage("Failed to switch alt.");
                     return true;
@@ -92,7 +97,7 @@ public class MCEngineIdentityCommand implements CommandExecutor {
                 sender.sendMessage(ok ? "Alt name updated." : "Failed to update alt name.");
                 return true;
             } else {
-                sender.sendMessage("/identity alt create | switch <altUuid> | name <altUuid> <name|null>");
+                sender.sendMessage("/identity alt create | switch <altUuid|name> | name <altUuid> <name|null>");
                 return true;
             }
         }
@@ -175,7 +180,7 @@ public class MCEngineIdentityCommand implements CommandExecutor {
             return true;
         }
 
-        sender.sendMessage("/identity alt create | alt switch <altUuid> | alt name <altUuid> <name|null> | limit add <player> <amount> | limit get [player]");
+        sender.sendMessage("/identity alt create | alt switch <altUuid|name> | alt name <altUuid> <name|null> | limit add <player> <amount> | limit get [player]");
         return true;
     }
 }
