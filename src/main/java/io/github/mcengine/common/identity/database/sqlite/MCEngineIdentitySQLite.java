@@ -7,6 +7,8 @@ import org.bukkit.plugin.Plugin;
 import java.io.File;
 import java.sql.*;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * SQLite implementation for the Identity module database.
@@ -110,84 +112,6 @@ public class MCEngineIdentitySQLite implements IMCEngineIdentityDB {
     @Override
     public Connection getDBConnection() {
         return conn;
-    }
-
-    @Override
-    public boolean ensureExist(Player player) {
-        if (conn == null) return false;
-        final String identityUuid = player.getUniqueId().toString();
-        final String primaryAltUuid = identityUuid + "-0";
-        final String now = java.time.Instant.now().toString();
-        try {
-            // 1) Upsert identity (default limit=1)
-            try (PreparedStatement ps = conn.prepareStatement(
-                    "INSERT INTO identity (identity_uuid, identity_limit, identity_created_at, identity_updated_at) " +
-                            "VALUES (?, 1, ?, ?) " +
-                            "ON CONFLICT(identity_uuid) DO UPDATE SET identity_updated_at=excluded.identity_updated_at")) {
-                ps.setString(1, identityUuid);
-                ps.setString(2, now);
-                ps.setString(3, now);
-                ps.executeUpdate();
-            }
-
-            // 2) Ensure {uuid}-0 alt exists
-            try (PreparedStatement ps = conn.prepareStatement(
-                    "INSERT OR IGNORE INTO identity_alternative (" +
-                            "identity_alternative_uuid, identity_uuid, identity_alternative_name, " +
-                            "identity_alternative_storage, identity_alternative_created_at, identity_alternative_updated_at" +
-                            ") VALUES (?,?,?,?,?,?)")) {
-                ps.setString(1, primaryAltUuid);
-                ps.setString(2, identityUuid);
-                ps.setNull(3, Types.VARCHAR);
-                ps.setNull(4, Types.BLOB);
-                ps.setString(5, now);
-                ps.setString(6, now);
-                ps.executeUpdate();
-            }
-
-            // 3) Ensure session row exists (points to {uuid}-0 if absent)
-            boolean hasSession = false;
-            try (PreparedStatement ps = conn.prepareStatement(
-                    "SELECT 1 FROM identity_session WHERE identity_uuid = ?")) {
-                ps.setString(1, identityUuid);
-                try (ResultSet rs = ps.executeQuery()) {
-                    hasSession = rs.next();
-                }
-            }
-            if (!hasSession) {
-                try (PreparedStatement ps = conn.prepareStatement(
-                        "INSERT INTO identity_session (identity_uuid, identity_alternative_uuid) VALUES (?, ?)")) {
-                    ps.setString(1, identityUuid);
-                    ps.setString(2, primaryAltUuid);
-                    ps.executeUpdate();
-                }
-            }
-
-            return true;
-        } catch (SQLException e) {
-            plugin.getLogger().warning("ensureExist failed: " + e.getMessage());
-            e.printStackTrace();
-            return false;
-        }
-    }
-
-    @Override
-    public String getProfileAltUuidByName(Player player, String altName) {
-        if (conn == null) return null;
-        String identityUuid = player.getUniqueId().toString();
-        try (PreparedStatement ps = conn.prepareStatement(
-                "SELECT identity_alternative_uuid FROM identity_alternative " +
-                        "WHERE identity_uuid = ? AND identity_alternative_name = ?")) {
-            ps.setString(1, identityUuid);
-            ps.setString(2, altName);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) return rs.getString(1);
-            }
-        } catch (SQLException e) {
-            plugin.getLogger().warning("getProfileAltUuidByName failed: " + e.getMessage());
-            e.printStackTrace();
-        }
-        return null;
     }
 
     /**
@@ -324,41 +248,18 @@ public class MCEngineIdentitySQLite implements IMCEngineIdentityDB {
     }
 
     @Override
-    public java.util.List<String> getProfileAllAlt(Player player) {
-        java.util.List<String> alts = new java.util.ArrayList<>();
-        if (conn == null) return alts;
-        String identityUuid = player.getUniqueId().toString();
-        try (PreparedStatement ps = conn.prepareStatement(
-                "SELECT identity_alternative_uuid, identity_alternative_name " +
-                "FROM identity_alternative WHERE identity_uuid = ? ORDER BY identity_alternative_uuid ASC")) {
-            ps.setString(1, identityUuid);
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    String uuid = rs.getString(1);
-                    String name = rs.getString(2);
-                    alts.add((name != null && !name.isEmpty()) ? name : uuid);
-                }
-            }
-        } catch (SQLException e) {
-            plugin.getLogger().warning("getProfileAllAlt failed: " + e.getMessage());
-            e.printStackTrace();
-        }
-        return alts;
-    }
-
-    @Override
     public boolean addLimit(Player player, int amount) {
         if (conn == null || amount < 0) return false;
         String identityUuid = player.getUniqueId().toString();
-        Timestamp now = Timestamp.from(Instant.now());
+        String now = Instant.now().toString();
         try {
             // ensure identity row
             try (PreparedStatement ps = conn.prepareStatement(
                     "INSERT INTO identity (identity_uuid, identity_limit, identity_created_at, identity_updated_at) VALUES (?, 1, ?, ?) " +
-                            "ON CONFLICT(identity_uuid) DO UPDATE SET identity_updated_at=EXCLUDED.identity_updated_at")) {
+                            "ON CONFLICT(identity_uuid) DO UPDATE SET identity_updated_at=excluded.identity_updated_at")) {
                 ps.setString(1, identityUuid);
-                ps.setTimestamp(2, now);
-                ps.setTimestamp(3, now);
+                ps.setString(2, now);
+                ps.setString(3, now);
                 ps.executeUpdate();
             }
             // increment limit
@@ -379,24 +280,11 @@ public class MCEngineIdentitySQLite implements IMCEngineIdentityDB {
     public int getLimit(Player player) {
         if (conn == null) return 1;
         String identityUuid = player.getUniqueId().toString();
-        Timestamp now = Timestamp.from(Instant.now());
-        try {
-            // upsert identity if missing (default limit=1)
-            try (PreparedStatement ps = conn.prepareStatement(
-                    "INSERT INTO identity (identity_uuid, identity_limit, identity_created_at, identity_updated_at) VALUES (?, 1, ?, ?) " +
-                            "ON CONFLICT(identity_uuid) DO UPDATE SET identity_updated_at=EXCLUDED.identity_updated_at")) {
-                ps.setString(1, identityUuid);
-                ps.setTimestamp(2, now);
-                ps.setTimestamp(3, now);
-                ps.executeUpdate();
-            }
-            // read limit
-            try (PreparedStatement ps = conn.prepareStatement(
-                    "SELECT identity_limit FROM identity WHERE identity_uuid = ?")) {
-                ps.setString(1, identityUuid);
-                try (ResultSet rs = ps.executeQuery()) {
-                    if (rs.next()) return rs.getInt(1);
-                }
+        try (PreparedStatement ps = conn.prepareStatement(
+                "SELECT identity_limit FROM identity WHERE identity_uuid = ?")) {
+            ps.setString(1, identityUuid);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return rs.getInt(1);
             }
         } catch (SQLException e) {
             plugin.getLogger().warning("getLimit failed: " + e.getMessage());
@@ -405,10 +293,15 @@ public class MCEngineIdentitySQLite implements IMCEngineIdentityDB {
         return 1;
     }
 
+    /**
+     * Saves the active alt's inventory payload.
+     * <p><b>SQLite fix:</b> uses a parameterized timestamp string instead of {@code NOW()}.</p>
+     */
     @Override
     public boolean saveAltInventory(Player player, byte[] payload) {
         if (conn == null) return false;
         String identityUuid = player.getUniqueId().toString();
+        String now = Instant.now().toString();
         try {
             String altUuid = null;
             try (PreparedStatement ps = conn.prepareStatement(
@@ -420,13 +313,14 @@ public class MCEngineIdentitySQLite implements IMCEngineIdentityDB {
             }
             if (altUuid == null) return false;
 
-            try (PreparedStatement ps = conn.prepareStatement(
-                    "UPDATE identity_alternative SET identity_alternative_storage = ?, identity_alternative_updated_at=NOW() " +
+            try (PreparedStatement up = conn.prepareStatement(
+                    "UPDATE identity_alternative SET identity_alternative_storage = ?, identity_alternative_updated_at = ? " +
                             "WHERE identity_alternative_uuid = ? AND identity_uuid = ?")) {
-                ps.setBytes(1, payload);
-                ps.setString(2, altUuid);
-                ps.setString(3, identityUuid);
-                return ps.executeUpdate() > 0;
+                up.setBytes(1, payload);
+                up.setString(2, now); // <-- pass timestamp explicitly (SQLite has no NOW())
+                up.setString(3, altUuid);
+                up.setString(4, identityUuid);
+                return up.executeUpdate() > 0;
             }
         } catch (SQLException e) {
             plugin.getLogger().warning("saveAltInventory failed: " + e.getMessage());
@@ -460,6 +354,107 @@ public class MCEngineIdentitySQLite implements IMCEngineIdentityDB {
             }
         } catch (SQLException e) {
             plugin.getLogger().warning("loadAltInventory failed: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    @Override
+    public List<String> getProfileAllAlt(Player player) {
+        List<String> alts = new ArrayList<>();
+        if (conn == null) return alts;
+        String identityUuid = player.getUniqueId().toString();
+        try (PreparedStatement ps = conn.prepareStatement(
+                "SELECT identity_alternative_uuid, identity_alternative_name " +
+                        "FROM identity_alternative WHERE identity_uuid = ? ORDER BY identity_alternative_uuid ASC")) {
+            ps.setString(1, identityUuid);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String uuid = rs.getString(1);
+                    String name = rs.getString(2);
+                    alts.add((name != null && !name.isEmpty()) ? name : uuid);
+                }
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().warning("getProfileAllAlt failed: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return alts;
+    }
+
+    @Override
+    public boolean ensureExist(Player player) {
+        if (conn == null) return false;
+        final String identityUuid = player.getUniqueId().toString();
+        final String primaryAltUuid = identityUuid + "-0";
+        final String now = java.time.Instant.now().toString();
+        try {
+            // 1) Upsert identity (default limit=1)
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "INSERT INTO identity (identity_uuid, identity_limit, identity_created_at, identity_updated_at) " +
+                            "VALUES (?, 1, ?, ?) " +
+                            "ON CONFLICT(identity_uuid) DO UPDATE SET identity_updated_at=excluded.identity_updated_at")) {
+                ps.setString(1, identityUuid);
+                ps.setString(2, now);
+                ps.setString(3, now);
+                ps.executeUpdate();
+            }
+
+            // 2) Ensure {uuid}-0 alt exists
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "INSERT OR IGNORE INTO identity_alternative (" +
+                            "identity_alternative_uuid, identity_uuid, identity_alternative_name, " +
+                            "identity_alternative_storage, identity_alternative_created_at, identity_alternative_updated_at" +
+                            ") VALUES (?,?,?,?,?,?)")) {
+                ps.setString(1, primaryAltUuid);
+                ps.setString(2, identityUuid);
+                ps.setNull(3, Types.VARCHAR);
+                ps.setNull(4, Types.BLOB);
+                ps.setString(5, now);
+                ps.setString(6, now);
+                ps.executeUpdate();
+            }
+
+            // 3) Ensure session row exists (points to {uuid}-0 if absent)
+            boolean hasSession = false;
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "SELECT 1 FROM identity_session WHERE identity_uuid = ?")) {
+                ps.setString(1, identityUuid);
+                try (ResultSet rs = ps.executeQuery()) {
+                    hasSession = rs.next();
+                }
+            }
+            if (!hasSession) {
+                try (PreparedStatement ps = conn.prepareStatement(
+                        "INSERT INTO identity_session (identity_uuid, identity_alternative_uuid) VALUES (?, ?)")) {
+                    ps.setString(1, identityUuid);
+                    ps.setString(2, primaryAltUuid);
+                    ps.executeUpdate();
+                }
+            }
+
+            return true;
+        } catch (SQLException e) {
+            plugin.getLogger().warning("ensureExist failed: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    @Override
+    public String getProfileAltUuidByName(Player player, String altName) {
+        if (conn == null) return null;
+        String identityUuid = player.getUniqueId().toString();
+        try (PreparedStatement ps = conn.prepareStatement(
+                "SELECT identity_alternative_uuid FROM identity_alternative " +
+                        "WHERE identity_uuid = ? AND identity_alternative_name = ?")) {
+            ps.setString(1, identityUuid);
+            ps.setString(2, altName);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return rs.getString(1);
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().warning("getProfileAltUuidByName failed: " + e.getMessage());
             e.printStackTrace();
         }
         return null;
