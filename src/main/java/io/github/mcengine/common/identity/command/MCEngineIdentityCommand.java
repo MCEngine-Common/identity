@@ -15,7 +15,7 @@ import org.bukkit.entity.Player;
  *     <li>{@code alt create}</li>
  *     <li>{@code alt switch &lt;altUuid&gt;} (auto-saves current and auto-loads target)</li>
  *     <li>{@code alt name &lt;altUuid&gt; &lt;name|null&gt;}</li>
- *     <li>{@code limit add &lt;player&gt; &lt;amount&gt;} (requires {@code mcengine.identity.alt.add})</li>
+ *     <li>{@code limit add &lt;player&gt; &lt;amount&gt;} (requires {@code mcengine.identity.limit.add})</li>
  * </ul>
  *
  * <p>Note: manual save/load commands have been removed since inventory
@@ -101,8 +101,8 @@ public class MCEngineIdentityCommand implements CommandExecutor {
                 sender.sendMessage("/identity limit add <player> <amount>");
                 return true;
             }
-            if (!sender.hasPermission("mcengine.identity.alt.add")) {
-                sender.sendMessage("You don't have permission (mcengine.identity.alt.add).");
+            if (!sender.hasPermission("mcengine.identity.limit.add")) {
+                sender.sendMessage("You don't have permission (mcengine.identity.limit.add).");
                 return true;
             }
             if (args.length < 4) {
