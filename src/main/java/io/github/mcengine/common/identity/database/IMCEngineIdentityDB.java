@@ -20,6 +20,19 @@ public interface IMCEngineIdentityDB {
     Connection getDBConnection();
 
     /**
+     * Ensures the player's identity structures exist:
+     * <ol>
+     *   <li>Upserts an {@code identity} row with default limit {@code 1}.</li>
+     *   <li>Ensures the primary alt {@code {uuid}-0} exists in {@code identity_alternative}.</li>
+     *   <li>Ensures a {@code identity_session} row exists; if absent, it points to {@code {uuid}-0}.</li>
+     * </ol>
+     *
+     * @param player Bukkit player
+     * @return {@code true} on success, {@code false} when the operation fails
+     */
+    boolean ensureExist(org.bukkit.entity.Player player);
+
+    /**
      * Creates (or ensures) an identity for the given player and then creates a new alternative
      * profile with the next available suffix pattern <code>{player_uuid}-{n}</code>.
      *

@@ -61,6 +61,16 @@ public class MCEngineIdentityCommon {
     // Business operations (delegated)
     // ------------------------------
 
+    /**
+     * Ensures the player's identity + primary alt + session exist in the DB.
+     *
+     * @param player Bukkit player
+     * @return {@code true} if ensure completed successfully
+     */
+    public boolean ensureExist(Player player) {
+        return db.ensureExist(player);
+    }
+
     public String createProfileAlt(Player player) {
         return db.createProfileAlt(player);
     }
