@@ -60,7 +60,7 @@ public class MCEngineIdentityCommand implements CommandExecutor {
             String op = args[1].toLowerCase();
             if (op.equals("create")) {
                 // Read limit (for better messaging) and rely on DB to enforce.
-                int limit = api.getDB().getLimit(p);
+                int limit = api.getLimit(p);
                 String alt = MCEngineIdentityCommon.getApi().createProfileAlt(p);
                 if (alt != null) {
                     sender.sendMessage("Created alt: " + alt);
