@@ -17,12 +17,13 @@ import java.util.Locale;
  * <p>
  * Completion paths:
  * <ul>
- *   <li><b>/identity</b> → {@code alt} (always), {@code limit} (only if sender has {@code mcengine.identity.alt.add})</li>
+ *   <li><b>/identity</b> → {@code alt} (always), {@code limit} (if sender has any related permission)</li>
  *   <li><b>/identity alt</b> → {@code create}, {@code switch}, {@code name}</li>
  *   <li><b>/identity alt switch &lt;alt&gt;</b> → suggests player's alts; if the user typed a <em>name</em>, it converts to the corresponding <em>UUID</em>.</li>
  *   <li><b>/identity alt name &lt;alt&gt; &lt;name|null&gt;</b> → suggests player's alts; if the user typed a <em>name</em>, it converts to the corresponding <em>UUID</em>, then suggests {@code null} for clearing.</li>
- *   <li><b>/identity limit</b> → {@code add}</li>
+ *   <li><b>/identity limit</b> → {@code add} (if {@code mcengine.identity.limit.add}) and/or {@code get} (if {@code mcengine.identity.limit.get} or {@code mcengine.identity.limit.get.players})</li>
  *   <li><b>/identity limit add &lt;player&gt; &lt;amount&gt;</b> → suggests online player names and common amounts</li>
+ *   <li><b>/identity limit get &lt;player&gt;</b> → suggests online player names (only if {@code mcengine.identity.limit.get.players})</li>
  * </ul>
  * <p>
  * This implementation performs <b>no direct SQL</b>. It resolves:
@@ -56,7 +57,9 @@ public class MCEngineIdentityTabCompleter implements TabCompleter {
         if (args.length == 1) {
             List<String> roots = new ArrayList<>();
             roots.add("alt");
-            if (player.hasPermission("mcengine.identity.alt.add")) {
+            if (player.hasPermission("mcengine.identity.limit.add")
+                    || player.hasPermission("mcengine.identity.limit.get")
+                    || player.hasPermission("mcengine.identity.limit.get.players")) {
                 roots.add("limit");
             }
             return filterPrefix(args[0], roots);
@@ -85,12 +88,16 @@ public class MCEngineIdentityTabCompleter implements TabCompleter {
         }
 
         // /identity limit ...
-        if ("limit".equalsIgnoreCase(args[0]) && player.hasPermission("mcengine.identity.alt.add")) {
+        if ("limit".equalsIgnoreCase(args[0])) {
             if (args.length == 2) {
-                return filterPrefix(args[1], List.of("add"));
+                List<String> subs = new ArrayList<>();
+                if (player.hasPermission("mcengine.identity.limit.add")) subs.add("add");
+                if (player.hasPermission("mcengine.identity.limit.get") || player.hasPermission("mcengine.identity.limit.get.players")) subs.add("get");
+                return filterPrefix(args[1], subs);
             }
-            if ("add".equalsIgnoreCase(args[1])) {
-                // /identity limit add <player> <amount>
+
+            // /identity limit add <player> <amount>
+            if ("add".equalsIgnoreCase(args[1]) && player.hasPermission("mcengine.identity.limit.add")) {
                 if (args.length == 3) {
                     List<String> names = new ArrayList<>();
                     for (Player p : Bukkit.getOnlinePlayers()) {
@@ -100,7 +107,22 @@ public class MCEngineIdentityTabCompleter implements TabCompleter {
                 } else if (args.length == 4) {
                     return filterPrefix(args[3], List.of("1", "5", "10"));
                 }
+                return Collections.emptyList();
             }
+
+            // /identity limit get [player]
+            if ("get".equalsIgnoreCase(args[1])) {
+                // /identity limit get <player> -> only suggest players if user has "players" permission
+                if (args.length == 3 && player.hasPermission("mcengine.identity.limit.get.players")) {
+                    List<String> names = new ArrayList<>();
+                    for (Player p : Bukkit.getOnlinePlayers()) {
+                        names.add(p.getName());
+                    }
+                    return filterPrefix(args[2], names);
+                }
+                return Collections.emptyList();
+            }
+
             return Collections.emptyList();
         }
 

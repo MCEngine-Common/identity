@@ -16,6 +16,8 @@ import org.bukkit.entity.Player;
  *     <li>{@code alt switch &lt;altUuid&gt;} (auto-saves current and auto-loads target)</li>
  *     <li>{@code alt name &lt;altUuid&gt; &lt;name|null&gt;}</li>
  *     <li>{@code limit add &lt;player&gt; &lt;amount&gt;} (requires {@code mcengine.identity.limit.add})</li>
+ *     <li>{@code limit get} (self; requires {@code mcengine.identity.limit.get})</li>
+ *     <li>{@code limit get &lt;player&gt;} (others; requires {@code mcengine.identity.limit.get.players})</li>
  * </ul>
  *
  * <p>Note: manual save/load commands have been removed since inventory
@@ -40,7 +42,7 @@ public class MCEngineIdentityCommand implements CommandExecutor {
         if (!command.getName().equalsIgnoreCase("identity")) return false;
 
         if (args.length == 0) {
-            sender.sendMessage("/identity alt create | alt switch <altUuid> | alt name <altUuid> <name|null> | limit add <player> <amount>");
+            sender.sendMessage("/identity alt create | alt switch <altUuid> | alt name <altUuid> <name|null> | limit add <player> <amount> | limit get [player]");
             return true;
         }
         String sub = args[0].toLowerCase();
@@ -97,40 +99,83 @@ public class MCEngineIdentityCommand implements CommandExecutor {
 
         // -------- /identity limit ... --------
         if ("limit".equals(sub)) {
-            if (args.length < 2 || !"add".equalsIgnoreCase(args[1])) {
-                sender.sendMessage("/identity limit add <player> <amount>");
+            if (args.length < 2) {
+                sender.sendMessage("/identity limit add <player> <amount> | limit get [player]");
                 return true;
             }
-            if (!sender.hasPermission("mcengine.identity.limit.add")) {
-                sender.sendMessage("You don't have permission (mcengine.identity.limit.add).");
+            String op = args[1].toLowerCase();
+
+            // /identity limit add <player> <amount>
+            if ("add".equals(op)) {
+                if (!sender.hasPermission("mcengine.identity.limit.add")) {
+                    sender.sendMessage("You don't have permission (mcengine.identity.limit.add).");
+                    return true;
+                }
+                if (args.length < 4) {
+                    sender.sendMessage("Usage: /identity limit add <player> <amount>");
+                    return true;
+                }
+                Player target = Bukkit.getPlayerExact(args[2]);
+                if (target == null) {
+                    sender.sendMessage("Player must be online.");
+                    return true;
+                }
+                int amount;
+                try {
+                    amount = Integer.parseInt(args[3]);
+                } catch (NumberFormatException e) {
+                    sender.sendMessage("Amount must be an integer.");
+                    return true;
+                }
+                if (amount < 0) {
+                    sender.sendMessage("Amount must not be negative.");
+                    return true;
+                }
+                boolean ok = api.addLimit(target, amount);
+                sender.sendMessage(ok ? ("Added " + amount + " to " + target.getName() + "'s identity limit.") : "Failed to update limit.");
                 return true;
             }
-            if (args.length < 4) {
-                sender.sendMessage("Usage: /identity limit add <player> <amount>");
-                return true;
+
+            // /identity limit get [player]
+            if ("get".equals(op)) {
+                // self
+                if (args.length == 2) {
+                    if (!(sender instanceof Player)) {
+                        sender.sendMessage("Usage (console): /identity limit get <player>");
+                        return true;
+                    }
+                    if (!sender.hasPermission("mcengine.identity.limit.get")) {
+                        sender.sendMessage("You don't have permission (mcengine.identity.limit.get).");
+                        return true;
+                    }
+                    Player self = (Player) sender;
+                    int limit = api.getLimit(self);
+                    sender.sendMessage("Your identity limit: " + limit);
+                    return true;
+                }
+
+                // others
+                if (args.length >= 3) {
+                    if (!sender.hasPermission("mcengine.identity.limit.get.players")) {
+                        sender.sendMessage("You don't have permission (mcengine.identity.limit.get.players).");
+                        return true;
+                    }
+                    Player target = Bukkit.getPlayerExact(args[2]);
+                    if (target == null) {
+                        sender.sendMessage("Player must be online.");
+                        return true;
+                    }
+                    int limit = api.getLimit(target);
+                    sender.sendMessage(target.getName() + "'s identity limit: " + limit);
+                    return true;
+                }
             }
-            Player target = Bukkit.getPlayerExact(args[2]);
-            if (target == null) {
-                sender.sendMessage("Player must be online.");
-                return true;
-            }
-            int amount;
-            try {
-                amount = Integer.parseInt(args[3]);
-            } catch (NumberFormatException e) {
-                sender.sendMessage("Amount must be an integer.");
-                return true;
-            }
-            if (amount < 0) {
-                sender.sendMessage("Amount must not be negative.");
-                return true;
-            }
-            boolean ok = api.addLimit(target, amount);
-            sender.sendMessage(ok ? ("Added " + amount + " to " + target.getName() + "'s identity limit.") : "Failed to update limit.");
+
+            sender.sendMessage("/identity limit add <player> <amount> | limit get [player]");
             return true;
         }
 
-        sender.sendMessage("/identity alt create | alt switch <altUuid> | alt name <altUuid> <name|null> | limit add <player> <amount>");
+        sender.sendMessage("/identity alt create | alt switch <altUuid> | alt name <altUuid> <name|null> | limit add <player> <amount> | limit get [player]");
         return true;
     }
 }
