@@ -15,6 +15,7 @@ import org.bukkit.entity.Player;
  *     <li>{@code alt create}</li>
  *     <li>{@code alt switch &lt;altUuid|name&gt;} (auto-saves current and auto-loads target)</li>
  *     <li>{@code alt name set &lt;altUuid&gt;} (sets display name to the player's current username)</li>
+ *     <li>{@code alt change &lt;oldName&gt; &lt;newName&gt;} (renames an existing alt by display name)</li>
  *     <li>{@code limit add &lt;player&gt; &lt;amount&gt;} (requires {@code mcengine.identity.limit.add})</li>
  *     <li>{@code limit get} (self; requires {@code mcengine.identity.limit.get})</li>
  *     <li>{@code limit get &lt;player&gt;} (others; requires {@code mcengine.identity.limit.get.players})</li>
@@ -42,7 +43,7 @@ public class MCEngineIdentityCommand implements CommandExecutor {
         if (!command.getName().equalsIgnoreCase("identity")) return false;
 
         if (args.length == 0) {
-            sender.sendMessage("/identity alt create | alt switch <altUuid|name> | alt name set <altUuid> | limit add <player> <amount> | limit get [player]");
+            sender.sendMessage("/identity alt create | alt switch <altUuid|name> | alt name set <altUuid> | alt change <oldName> <newName> | limit add <player> <amount> | limit get [player]");
             return true;
         }
         String sub = args[0].toLowerCase();
@@ -56,7 +57,7 @@ public class MCEngineIdentityCommand implements CommandExecutor {
             Player p = (Player) sender;
 
             if (args.length < 2) {
-                sender.sendMessage("/identity alt create | switch <altUuid|name> | name set <altUuid>");
+                sender.sendMessage("/identity alt create | switch <altUuid|name> | name set <altUuid> | change <oldName> <newName>");
                 return true;
             }
             String op = args[1].toLowerCase();
@@ -124,8 +125,40 @@ public class MCEngineIdentityCommand implements CommandExecutor {
                 return true;
             }
 
+            if (op.equals("change")) {
+                // /identity alt change <oldName> <newName>
+                if (args.length < 4) {
+                    sender.sendMessage("Usage: /identity alt change <oldName> <newName>");
+                    return true;
+                }
+                String oldName = args[2];
+                String newName = args[3];
+
+                // Resolve current name to alt UUID
+                String altUuid = api.getProfileAltUuidByName(p, oldName);
+                if (altUuid == null || altUuid.isEmpty()) {
+                    sender.sendMessage("No alt found with name '" + oldName + "'.");
+                    return true;
+                }
+
+                // If new name equals existing, short-circuit
+                String existing = api.getProfileAltName(p, altUuid);
+                if (existing != null && existing.equals(newName)) {
+                    sender.sendMessage("Alt already has the name '" + newName + "'.");
+                    return true;
+                }
+
+                boolean ok = MCEngineIdentityCommon.getApi().setProfileAltname(p, altUuid, newName);
+                if (ok) {
+                    sender.sendMessage("Renamed alt '" + oldName + "' to '" + newName + "'.");
+                } else {
+                    sender.sendMessage("Failed to rename alt. The new name may already be in use.");
+                }
+                return true;
+            }
+
             // Fallback help for /identity alt
-            sender.sendMessage("/identity alt create | switch <altUuid|name> | name set <altUuid>");
+            sender.sendMessage("/identity alt create | switch <altUuid|name> | name set <altUuid> | change <oldName> <newName>");
             return true;
         }
 
@@ -207,7 +240,7 @@ public class MCEngineIdentityCommand implements CommandExecutor {
             return true;
         }
 
-        sender.sendMessage("/identity alt create | alt switch <altUuid|name> | alt name set <altUuid> | limit add <player> <amount> | limit get [player]");
+        sender.sendMessage("/identity alt create | alt switch <altUuid|name> | alt name set <altUuid> | alt change <oldName> <newName> | limit add <player> <amount> | limit get [player]");
         return true;
     }
 }
