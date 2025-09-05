@@ -18,11 +18,11 @@ import java.util.Locale;
  * Completion paths:
  * <ul>
  *   <li><b>/identity</b> → {@code alt} (always), {@code limit} (if sender has any related permission)</li>
- *   <li><b>/identity alt</b> → {@code create}, {@code switch}, {@code name}, {@code change}</li>
+ *   <li><b>/identity alt</b> → {@code create}, {@code switch}, {@code name}</li>
  *   <li><b>/identity alt switch &lt;alt&gt;</b> → suggests player's alts; if a <em>name</em> is typed, it converts to the corresponding <em>UUID</em>.</li>
- *   <li><b>/identity alt name</b> → {@code set}</li>
+ *   <li><b>/identity alt name</b> → {@code set}, {@code change}</li>
  *   <li><b>/identity alt name set &lt;altUuid&gt;</b> → suggests only alts that do <b>not</b> already have a display name</li>
- *   <li><b>/identity alt change &lt;oldName&gt; &lt;newName&gt;</b> → suggests only alts that <b>have</b> a display name for the first argument</li>
+ *   <li><b>/identity alt name change &lt;oldName&gt; &lt;newName&gt;</b> → suggests only display-name alts for the first argument</li>
  *   <li><b>/identity limit</b> → {@code add} (if {@code mcengine.identity.limit.add}) and/or {@code get} (if {@code mcengine.identity.limit.get} or {@code mcengine.identity.limit.get.players})</li>
  *   <li><b>/identity limit add &lt;player&gt; &lt;amount&gt;</b> → suggests online player names and common amounts</li>
  *   <li><b>/identity limit get &lt;player&gt;</b> → suggests online player names (only if {@code mcengine.identity.limit.get.players})</li>
@@ -68,7 +68,7 @@ public class MCEngineIdentityTabCompleter implements TabCompleter {
         // /identity alt ...
         if ("alt".equalsIgnoreCase(args[0])) {
             if (args.length == 2) {
-                return filterPrefix(args[1], List.of("create", "switch", "name", "change"));
+                return filterPrefix(args[1], List.of("create", "switch", "name"));
             }
 
             // /identity alt switch <altNameOrUuid>
@@ -79,24 +79,22 @@ public class MCEngineIdentityTabCompleter implements TabCompleter {
             // /identity alt name ...
             if ("name".equalsIgnoreCase(args[1])) {
                 if (args.length == 3) {
-                    return filterPrefix(args[2], List.of("set"));
+                    return filterPrefix(args[2], List.of("set", "change"));
                 }
                 // /identity alt name set <altUuid>
                 if (args.length == 4 && "set".equalsIgnoreCase(args[2])) {
                     return filterPrefix(args[3], altsWithoutDisplayName(player));
                 }
-                return Collections.emptyList();
-            }
-
-            // /identity alt change <oldName> <newName>
-            if ("change".equalsIgnoreCase(args[1])) {
-                // First argument should be an existing display name
-                if (args.length == 3) {
-                    return filterPrefix(args[2], altsWithDisplayNameOnly(player));
-                }
-                // Second argument (new name): no suggestions by default
-                if (args.length == 4) {
-                    return Collections.emptyList();
+                // /identity alt name change <oldName> <newName>
+                if ("change".equalsIgnoreCase(args[2])) {
+                    // First argument is an existing display name
+                    if (args.length == 4) {
+                        return filterPrefix(args[3], altsWithDisplayNameOnly(player));
+                    }
+                    // Second argument (new name): no suggestions by default
+                    if (args.length == 5) {
+                        return Collections.emptyList();
+                    }
                 }
                 return Collections.emptyList();
             }
@@ -113,7 +111,7 @@ public class MCEngineIdentityTabCompleter implements TabCompleter {
                 boolean canGet = player.hasPermission("mcengine.identity.limit.get")
                         || player.hasPermission("mcengine.identity.limit.get.players");
                 if (canGet) {
-                    subs.add("get"); // real token only (no hint row)
+                    subs.add("get"); // real token only
                 }
                 return filterPrefix(args[1], subs);
             }
