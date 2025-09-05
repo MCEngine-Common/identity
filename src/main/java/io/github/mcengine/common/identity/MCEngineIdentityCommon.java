@@ -71,6 +71,17 @@ public class MCEngineIdentityCommon {
         return db.ensureExist(player);
     }
 
+    /**
+     * Resolves an alt UUID by its display name for the given player.
+     *
+     * @param player  the Bukkit player
+     * @param altName the display name of the alt
+     * @return the alt UUID string, or {@code null} if not found
+     */
+    public String getProfileAltUuidByName(Player player, String altName) {
+        return db.getProfileAltUuidByName(player, altName);
+    }
+
     public String createProfileAlt(Player player) {
         return db.createProfileAlt(player);
     }

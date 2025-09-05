@@ -164,6 +164,25 @@ public class MCEngineIdentityPostgreSQL implements IMCEngineIdentityDB {
         }
     }
 
+    @Override
+    public String getProfileAltUuidByName(Player player, String altName) {
+        if (conn == null) return null;
+        String identityUuid = player.getUniqueId().toString();
+        try (PreparedStatement ps = conn.prepareStatement(
+                "SELECT identity_alternative_uuid FROM identity_alternative " +
+                        "WHERE identity_uuid = ? AND identity_alternative_name = ?")) {
+            ps.setString(1, identityUuid);
+            ps.setString(2, altName);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return rs.getString(1);
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().warning("getProfileAltUuidByName failed: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return null;
+    }
+
     /**
      * Creates a new alternative for the player's identity, enforcing {@code identity_limit}.
      * If current alternative count is already at or above the limit, returns {@code null}.
