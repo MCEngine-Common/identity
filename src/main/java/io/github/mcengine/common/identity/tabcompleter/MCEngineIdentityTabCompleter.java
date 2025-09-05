@@ -113,12 +113,7 @@ public class MCEngineIdentityTabCompleter implements TabCompleter {
                 boolean canGet = player.hasPermission("mcengine.identity.limit.get")
                         || player.hasPermission("mcengine.identity.limit.get.players");
                 if (canGet) {
-                    subs.add("get"); // real token
-
-                    // --- hint row (non-executable): show current count/limit alongside "get"
-                    int limit = MCEngineIdentityCommon.getApi().getLimit(player);
-                    int count = MCEngineIdentityCommon.getApi().getProfileCount(player);
-                    subs.add("— you: " + count + " / " + limit);
+                    subs.add("get"); // real token only (no hint row)
                 }
                 return filterPrefix(args[1], subs);
             }
@@ -140,12 +135,6 @@ public class MCEngineIdentityTabCompleter implements TabCompleter {
                 if (args.length == 3 && player.hasPermission("mcengine.identity.limit.get.players")) {
                     List<String> names = new ArrayList<>();
                     for (Player p : Bukkit.getOnlinePlayers()) names.add(p.getName());
-
-                    // Also append a hint row showing the caller's own count/limit.
-                    int limit = MCEngineIdentityCommon.getApi().getLimit(player);
-                    int count = MCEngineIdentityCommon.getApi().getProfileCount(player);
-                    names.add("— you: " + count + " / " + limit);
-
                     return filterPrefix(args[2], names);
                 }
                 return Collections.emptyList();
