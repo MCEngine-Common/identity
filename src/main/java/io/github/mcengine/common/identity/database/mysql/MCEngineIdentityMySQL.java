@@ -12,6 +12,14 @@ import java.time.Instant;
  * <p>
  * Establishes a persistent connection and ensures tables exist according to the provided schema.
  * Enforces {@code identity.identity_limit} when creating new alternatives.
+ *
+ * <h3>Schema highlights (MySQL/InnoDB)</h3>
+ * <ul>
+ *   <li>{@code identity_uuid} is the <b>primary key</b> for {@code identity}.</li>
+ *   <li>{@code identity_session} uses {@code PRIMARY KEY (identity_uuid)} to enforce one row per identity.</li>
+ *   <li>Timestamps default to {@code CURRENT_TIMESTAMP} and update via {@code ON UPDATE CURRENT_TIMESTAMP} where supported.</li>
+ *   <li>Engine/charset set to {@code InnoDB/utf8mb4}.</li>
+ * </ul>
  */
 public class MCEngineIdentityMySQL implements IMCEngineIdentityDB {
 
@@ -42,7 +50,8 @@ public class MCEngineIdentityMySQL implements IMCEngineIdentityDB {
         String user = plugin.getConfig().getString("database.mysql.user", "root");
         String pass = plugin.getConfig().getString("database.mysql.password", "");
 
-        String jdbcUrl = "jdbc:mysql://" + host + ":" + port + "/" + dbName + "?useSSL=false&autoReconnect=true&characterEncoding=utf8";
+        // Use utf8mb4 for full Unicode coverage
+        String jdbcUrl = "jdbc:mysql://" + host + ":" + port + "/" + dbName + "?useSSL=false&autoReconnect=true&characterEncoding=utf8mb4";
 
         Connection tmp = null;
         try {
@@ -58,45 +67,62 @@ public class MCEngineIdentityMySQL implements IMCEngineIdentityDB {
     /** Ensures schema exists with the requested constraints. */
     private void ensureSchema(Connection c) throws SQLException {
         try (Statement st = c.createStatement()) {
-            st.executeUpdate("CREATE TABLE IF NOT EXISTS identity (" +
-                    "identity_id INT AUTO_INCREMENT PRIMARY KEY," +
-                    "identity_uuid VARCHAR(36) NOT NULL UNIQUE," +
-                    "identity_limit INT NOT NULL DEFAULT 1," +
-                    "identity_created_at DATETIME NULL," +
-                    "identity_updated_at DATETIME NULL" +
-                    ")");
+            // identity: identity_uuid is PK; timestamps auto-managed
+            st.executeUpdate(
+                "CREATE TABLE IF NOT EXISTS identity (" +
+                "  identity_uuid VARCHAR(36) NOT NULL," +
+                "  identity_limit INT NOT NULL DEFAULT 1," +
+                "  identity_created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP," +
+                "  identity_updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP," +
+                "  PRIMARY KEY (identity_uuid)" +
+                ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
+            );
 
-            st.executeUpdate("CREATE TABLE IF NOT EXISTS identity_alternative (" +
-                    "identity_alternative_uuid VARCHAR(64) PRIMARY KEY," +
-                    "identity_uuid VARCHAR(36) NOT NULL," +
-                    "identity_alternative_name VARCHAR(64) NULL," +
-                    "identity_alternative_storage LONGBLOB NULL," +
-                    "identity_alternative_created_at DATETIME NULL," +
-                    "identity_alternative_updated_at DATETIME NULL," +
-                    "FOREIGN KEY (identity_uuid) REFERENCES identity(identity_uuid) ON DELETE CASCADE," +
-                    "UNIQUE KEY uniq_identity_name (identity_uuid, identity_alternative_name)" +
-                    ")");
+            // identity_alternative: PK on alt uuid, FK to identity, name unique per identity (NULLs allowed), helpful indexes
+            st.executeUpdate(
+                "CREATE TABLE IF NOT EXISTS identity_alternative (" +
+                "  identity_alternative_uuid VARCHAR(64) NOT NULL," +
+                "  identity_uuid VARCHAR(36) NOT NULL," +
+                "  identity_alternative_name VARCHAR(64) NULL," +
+                "  identity_alternative_storage LONGBLOB NULL," +
+                "  identity_alternative_created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP," +
+                "  identity_alternative_updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP," +
+                "  CONSTRAINT fk_alt_identity FOREIGN KEY (identity_uuid) REFERENCES identity(identity_uuid) ON DELETE CASCADE," +
+                "  UNIQUE KEY uniq_identity_name (identity_uuid, identity_alternative_name)," +
+                "  PRIMARY KEY (identity_alternative_uuid)," +
+                "  KEY idx_alt_identity (identity_uuid)," +
+                "  KEY idx_alt_name (identity_alternative_name)" +
+                ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
+            );
 
-            st.executeUpdate("CREATE TABLE IF NOT EXISTS identity_session (" +
-                    "identity_session_id INT AUTO_INCREMENT PRIMARY KEY," +
-                    "identity_uuid VARCHAR(36) NOT NULL," +
-                    "identity_alternative_uuid VARCHAR(64) NULL," +
-                    "FOREIGN KEY (identity_uuid) REFERENCES identity(identity_uuid) ON DELETE CASCADE," +
-                    "FOREIGN KEY (identity_alternative_uuid) REFERENCES identity_alternative(identity_alternative_uuid) ON DELETE SET NULL," +
-                    "UNIQUE KEY uniq_identity_session (identity_uuid)" +
-                    ")");
+            // identity_session: exactly one row per identity (PK = identity_uuid); alt is nullable and SET NULL on alt deletion
+            st.executeUpdate(
+                "CREATE TABLE IF NOT EXISTS identity_session (" +
+                "  identity_uuid VARCHAR(36) NOT NULL," +
+                "  identity_alternative_uuid VARCHAR(64) NULL," +
+                "  CONSTRAINT fk_session_identity FOREIGN KEY (identity_uuid) REFERENCES identity(identity_uuid) ON DELETE CASCADE," +
+                "  CONSTRAINT fk_session_alt FOREIGN KEY (identity_alternative_uuid) REFERENCES identity_alternative(identity_alternative_uuid) ON DELETE SET NULL," +
+                "  PRIMARY KEY (identity_uuid)" +
+                ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
+            );
 
-            st.executeUpdate("CREATE TABLE IF NOT EXISTS identity_permission (" +
-                    "identity_permission_id INT AUTO_INCREMENT PRIMARY KEY," +
-                    "identity_uuid VARCHAR(36) NOT NULL," +
-                    "identity_alternative_uuid VARCHAR(64) NULL," +
-                    "identity_permission_name VARCHAR(64) NOT NULL," +
-                    "identity_permission_created_at DATETIME NULL," +
-                    "identity_permission_updated_at DATETIME NULL," +
-                    "FOREIGN KEY (identity_uuid) REFERENCES identity(identity_uuid) ON DELETE CASCADE," +
-                    "FOREIGN KEY (identity_alternative_uuid) REFERENCES identity_alternative(identity_alternative_uuid) ON DELETE CASCADE," +
-                    "UNIQUE KEY uniq_perm (identity_uuid, identity_alternative_uuid, identity_permission_name)" +
-                    ")");
+            // identity_permission: surrogate BIGINT id; useful indexes for common filters
+            st.executeUpdate(
+                "CREATE TABLE IF NOT EXISTS identity_permission (" +
+                "  identity_permission_id BIGINT AUTO_INCREMENT PRIMARY KEY," +
+                "  identity_uuid VARCHAR(36) NOT NULL," +
+                "  identity_alternative_uuid VARCHAR(64) NULL," +
+                "  identity_permission_name VARCHAR(64) NOT NULL," +
+                "  identity_permission_created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP," +
+                "  identity_permission_updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP," +
+                "  CONSTRAINT fk_perm_identity FOREIGN KEY (identity_uuid) REFERENCES identity(identity_uuid) ON DELETE CASCADE," +
+                "  CONSTRAINT fk_perm_alt FOREIGN KEY (identity_alternative_uuid) REFERENCES identity_alternative(identity_alternative_uuid) ON DELETE CASCADE," +
+                "  UNIQUE KEY uniq_perm (identity_uuid, identity_alternative_uuid, identity_permission_name)," +
+                "  KEY idx_perm_identity (identity_uuid)," +
+                "  KEY idx_perm_alt (identity_alternative_uuid)," +
+                "  KEY idx_perm_name (identity_permission_name)" +
+                ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
+            );
         }
     }
 
@@ -281,7 +307,7 @@ public class MCEngineIdentityMySQL implements IMCEngineIdentityDB {
                     if (!rs.next()) return false;
                 }
             }
-            // upsert session
+            // upsert session (PK on identity_uuid ensures 1 row)
             try (PreparedStatement up = conn.prepareStatement(
                     "INSERT INTO identity_session (identity_uuid, identity_alternative_uuid) VALUES (?, ?) " +
                             "ON DUPLICATE KEY UPDATE identity_alternative_uuid = VALUES(identity_alternative_uuid)")) {
@@ -301,7 +327,7 @@ public class MCEngineIdentityMySQL implements IMCEngineIdentityDB {
         if (conn == null) return false;
         String identityUuid = player.getUniqueId().toString();
         try (PreparedStatement ps = conn.prepareStatement(
-                "UPDATE identity_alternative SET identity_alternative_name = ?, identity_alternative_updated_at = NOW() " +
+                "UPDATE identity_alternative SET identity_alternative_name = ?, identity_alternative_updated_at = CURRENT_TIMESTAMP " +
                         "WHERE identity_alternative_uuid = ? AND identity_uuid = ?")) {
             if (altName == null) ps.setNull(1, Types.VARCHAR);
             else ps.setString(1, altName);
