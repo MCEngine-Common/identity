@@ -4,6 +4,7 @@ import io.github.mcengine.common.identity.database.IMCEngineIdentityDB;
 import io.github.mcengine.common.identity.database.mysql.MCEngineIdentityMySQL;
 import io.github.mcengine.common.identity.database.postgresql.MCEngineIdentityPostgreSQL;
 import io.github.mcengine.common.identity.database.sqlite.MCEngineIdentitySQLite;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
@@ -12,6 +13,8 @@ import org.bukkit.util.io.BukkitObjectOutputStream;
 
 import java.io.ByteArrayOutputStream;
 import java.io.ByteArrayInputStream;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * The {@code MCEngineIdentityCommon} class wires a Bukkit {@link Plugin} to an
@@ -28,6 +31,11 @@ public class MCEngineIdentityCommon {
 
     /** Database interface used by the Identity module. */
     private final IMCEngineIdentityDB db;
+
+    /** Background executor for DB/serialization tasks. */
+    private final ExecutorService ioPool = Executors.newFixedThreadPool(
+            Math.max(2, Runtime.getRuntime().availableProcessors() / 2)
+    );
 
     /**
      * Constructs the Identity API and selects the database implementation from config
@@ -132,8 +140,8 @@ public class MCEngineIdentityCommon {
         return db.addLimit(target, amount);
     }
 
-    /** 
-     * Returns the current alt limit for the player's identity. 
+    /**
+     * Returns the current alt limit for the player's identity.
      *
      * @param player Bukkit player
      * @return the maximum number of alts allowed for this identity
@@ -217,5 +225,64 @@ public class MCEngineIdentityCommon {
             e.printStackTrace();
             return false;
         }
+    }
+
+    // -------------------------------------------------
+    // Async variants (thread-safe with Bukkit main-thread handoffs)
+    // -------------------------------------------------
+
+    /**
+     * Asynchronously saves the player's current inventory.
+     * <p>Snapshots the inventory on the main thread, then serializes and persists off-thread.</p>
+     *
+     * @param player Bukkit player
+     */
+    public void saveActiveAltInventoryAsync(Player player) {
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            ItemStack[] snapshot = player.getInventory().getContents();
+            ioPool.execute(() -> {
+                try {
+                    byte[] payload = serializeInventory(snapshot);
+                    db.saveAltInventory(player, payload);
+                } catch (Exception e) {
+                    plugin.getLogger().warning("Failed to async-save inventory: " + e.getMessage());
+                    e.printStackTrace();
+                }
+            });
+        });
+    }
+
+    /**
+     * Asynchronously loads and applies the active alt's stored inventory.
+     * <p>Performs DB I/O off-thread and applies changes back on the main thread.</p>
+     *
+     * @param player Bukkit player
+     */
+    public void loadActiveAltInventoryAsync(Player player) {
+        ioPool.execute(() -> {
+            try {
+                byte[] payload = db.loadAltInventory(player);
+                if (payload == null) {
+                    Bukkit.getScheduler().runTask(plugin, () -> {
+                        player.getInventory().clear();
+                        player.updateInventory();
+                    });
+                    return;
+                }
+                ItemStack[] restored = deserializeInventory(payload);
+                Bukkit.getScheduler().runTask(plugin, () -> {
+                    player.getInventory().setContents(restored);
+                    player.updateInventory();
+                });
+            } catch (Exception e) {
+                plugin.getLogger().warning("Failed to async-load inventory: " + e.getMessage());
+                e.printStackTrace();
+            }
+        });
+    }
+
+    /** Shuts down background executors; call from plugin {@code onDisable()}. */
+    public void shutdownAsyncPools() {
+        ioPool.shutdownNow();
     }
 }
