@@ -4,6 +4,7 @@ import io.github.mcengine.common.identity.database.IMCEngineIdentityDB;
 import io.github.mcengine.common.identity.database.mysql.MCEngineIdentityMySQL;
 import io.github.mcengine.common.identity.database.postgresql.MCEngineIdentityPostgreSQL;
 import io.github.mcengine.common.identity.database.sqlite.MCEngineIdentitySQLite;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
@@ -12,6 +13,8 @@ import org.bukkit.util.io.BukkitObjectOutputStream;
 
 import java.io.ByteArrayOutputStream;
 import java.io.ByteArrayInputStream;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * The {@code MCEngineIdentityCommon} class wires a Bukkit {@link Plugin} to an
@@ -28,6 +31,12 @@ public class MCEngineIdentityCommon {
 
     /** Database interface used by the Identity module. */
     private final IMCEngineIdentityDB db;
+
+    private final ExecutorService ioPool = Executors.newFixedThreadPool(
+        Math.max(
+            2, Runtime.getRuntime().availableProcessors() / 2
+            )
+    );
 
     /**
      * Constructs the Identity API and selects the database implementation from config
@@ -217,5 +226,40 @@ public class MCEngineIdentityCommon {
             e.printStackTrace();
             return false;
         }
+    }
+
+    public void saveActiveAltInventoryAsync(Player player) {
+        ioPool.execute(() -> saveActiveAltInventory(player));
+    }
+
+    public void saveActiveAltInventoryAsync(Player player) {
+        ioPool.execute(() -> saveActiveAltInventory(player));
+    }
+
+    public void loadActiveAltInventoryAsync(Player player) {
+        ioPool.execute(() -> {
+            try {
+                byte[] payload = db.loadAltInventory(player);
+                if (payload == null) {
+                    Bukkit.getScheduler().runTask(plugin, () -> {
+                        player.getInventory().clear();
+                        player.updateInventory();
+                    });
+                    return;
+                }
+                ItemStack[] restored = deserializeInventory(payload);
+                Bukkit.getScheduler().runTask(plugin, () -> {
+                    player.getInventory().setContents(restored);
+                    player.updateInventory();
+                });
+            } catch (Exception e) {
+                plugin.getLogger().warning("Failed to async-load inventory: " + e.getMessage());
+                e.printStackTrace();
+            }
+        });
+    }
+
+    public void shutdownAsyncPools() {
+        ioPool.shutdownNow();
     }
 }

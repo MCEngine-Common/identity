@@ -47,7 +47,7 @@ public class MCEngineIdentityListener implements Listener {
             // Consolidated ensure logic (identity, {uuid}-0 alt, session) implemented in the DB layer.
             api.ensureExist(player);
             // Auto-load inventory for the active alt (if any)
-            api.loadActiveAltInventory(player);
+            api.loadActiveAltInventoryAsync(player);
         } catch (Exception e) {
             api.getPlugin().getLogger().warning("Failed during ensure/load for " + player.getUniqueId() + ": " + e.getMessage());
             e.printStackTrace();
@@ -62,7 +62,7 @@ public class MCEngineIdentityListener implements Listener {
     @EventHandler
     public void onPlayerQuit(PlayerQuitEvent event) {
         Player player = event.getPlayer();
-        boolean ok = api.saveActiveAltInventory(player);
+        boolean ok = api.saveActiveAltInventoryAsync(player);
         if (!ok) {
             api.getPlugin().getLogger().fine("No active alt or nothing to save for " + player.getUniqueId());
         }
@@ -79,7 +79,7 @@ public class MCEngineIdentityListener implements Listener {
         if (!(event.getPlayer() instanceof Player player)) return;
         // Only react to the player's main (crafting) inventory screen
         if (event.getInventory().getType() == InventoryType.CRAFTING) {
-            api.loadActiveAltInventory(player);
+            api.loadActiveAltInventoryAsync(player);
         }
     }
 
@@ -93,7 +93,7 @@ public class MCEngineIdentityListener implements Listener {
     public void onInventoryClose(InventoryCloseEvent event) {
         if (!(event.getPlayer() instanceof Player player)) return;
         if (event.getInventory().getType() == InventoryType.CRAFTING) {
-            api.saveActiveAltInventory(player);
+            api.saveActiveAltInventoryAsync(player);
         }
     }
 }
