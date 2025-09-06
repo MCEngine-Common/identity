@@ -32,10 +32,9 @@ public class MCEngineIdentityCommon {
     /** Database interface used by the Identity module. */
     private final IMCEngineIdentityDB db;
 
+    /** Background executor for DB/serialization tasks. */
     private final ExecutorService ioPool = Executors.newFixedThreadPool(
-        Math.max(
-            2, Runtime.getRuntime().availableProcessors() / 2
-            )
+            Math.max(2, Runtime.getRuntime().availableProcessors() / 2)
     );
 
     /**
@@ -141,8 +140,8 @@ public class MCEngineIdentityCommon {
         return db.addLimit(target, amount);
     }
 
-    /** 
-     * Returns the current alt limit for the player's identity. 
+    /**
+     * Returns the current alt limit for the player's identity.
      *
      * @param player Bukkit player
      * @return the maximum number of alts allowed for this identity
@@ -228,14 +227,37 @@ public class MCEngineIdentityCommon {
         }
     }
 
+    // -------------------------------------------------
+    // Async variants (thread-safe with Bukkit main-thread handoffs)
+    // -------------------------------------------------
+
+    /**
+     * Asynchronously saves the player's current inventory.
+     * <p>Snapshots the inventory on the main thread, then serializes and persists off-thread.</p>
+     *
+     * @param player Bukkit player
+     */
     public void saveActiveAltInventoryAsync(Player player) {
-        ioPool.execute(() -> saveActiveAltInventory(player));
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            ItemStack[] snapshot = player.getInventory().getContents();
+            ioPool.execute(() -> {
+                try {
+                    byte[] payload = serializeInventory(snapshot);
+                    db.saveAltInventory(player, payload);
+                } catch (Exception e) {
+                    plugin.getLogger().warning("Failed to async-save inventory: " + e.getMessage());
+                    e.printStackTrace();
+                }
+            });
+        });
     }
 
-    public void saveActiveAltInventoryAsync(Player player) {
-        ioPool.execute(() -> saveActiveAltInventory(player));
-    }
-
+    /**
+     * Asynchronously loads and applies the active alt's stored inventory.
+     * <p>Performs DB I/O off-thread and applies changes back on the main thread.</p>
+     *
+     * @param player Bukkit player
+     */
     public void loadActiveAltInventoryAsync(Player player) {
         ioPool.execute(() -> {
             try {
@@ -259,6 +281,7 @@ public class MCEngineIdentityCommon {
         });
     }
 
+    /** Shuts down background executors; call from plugin {@code onDisable()}. */
     public void shutdownAsyncPools() {
         ioPool.shutdownNow();
     }

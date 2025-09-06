@@ -62,10 +62,7 @@ public class MCEngineIdentityListener implements Listener {
     @EventHandler
     public void onPlayerQuit(PlayerQuitEvent event) {
         Player player = event.getPlayer();
-        boolean ok = api.saveActiveAltInventoryAsync(player);
-        if (!ok) {
-            api.getPlugin().getLogger().fine("No active alt or nothing to save for " + player.getUniqueId());
-        }
+        api.saveActiveAltInventoryAsync(player);
     }
 
     /**
