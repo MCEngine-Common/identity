@@ -14,7 +14,7 @@ import org.bukkit.entity.Player;
  * <ul>
  *     <li>{@code alt create}</li>
  *     <li>{@code alt switch &lt;altUuid|name&gt;} (auto-saves current and auto-loads target)</li>
- *     <li>{@code alt name set &lt;altUuid&gt;} (sets display name to the player's current username)</li>
+ *     <li>{@code alt name set &lt;altUuid&gt; &lt;newName&gt;} (sets display name explicitly)</li>
  *     <li>{@code alt name change &lt;oldName&gt; &lt;newName&gt;} (renames an existing alt by display name)</li>
  *     <li>{@code limit add &lt;player&gt; &lt;amount&gt;} (requires {@code mcengine.identity.limit.add})</li>
  *     <li>{@code limit get} (self; requires {@code mcengine.identity.limit.get})</li>
@@ -43,7 +43,7 @@ public class MCEngineIdentityCommand implements CommandExecutor {
         if (!command.getName().equalsIgnoreCase("identity")) return false;
 
         if (args.length == 0) {
-            sender.sendMessage("/identity alt create | alt switch <altUuid|name> | alt name set <altUuid> | alt name change <oldName> <newName> | limit add <player> <amount> | limit get [player]");
+            sender.sendMessage("/identity alt create | alt switch <altUuid|name> | alt name set <altUuid> <newName> | alt name change <oldName> <newName> | limit add <player> <amount> | limit get [player]");
             return true;
         }
         String sub = args[0].toLowerCase();
@@ -57,7 +57,7 @@ public class MCEngineIdentityCommand implements CommandExecutor {
             Player p = (Player) sender;
 
             if (args.length < 2) {
-                sender.sendMessage("/identity alt create | switch <altUuid|name> | name set <altUuid> | name change <oldName> <newName>");
+                sender.sendMessage("/identity alt create | switch <altUuid|name> | name set <altUuid> <newName> | name change <oldName> <newName>");
                 return true;
             }
             String op = args[1].toLowerCase();
@@ -99,18 +99,19 @@ public class MCEngineIdentityCommand implements CommandExecutor {
             if (op.equals("name")) {
                 // /identity alt name <set|change> ...
                 if (args.length < 3) {
-                    sender.sendMessage("Usage: /identity alt name set <altUuid> | /identity alt name change <oldName> <newName>");
+                    sender.sendMessage("Usage: /identity alt name set <altUuid> <newName> | /identity alt name change <oldName> <newName>");
                     return true;
                 }
                 String nameOp = args[2].toLowerCase();
 
                 if (nameOp.equals("set")) {
-                    // /identity alt name set <altUuid>
-                    if (args.length < 4) {
-                        sender.sendMessage("Usage: /identity alt name set <altUuid>");
+                    // /identity alt name set <altUuid> <newName>
+                    if (args.length < 5) {
+                        sender.sendMessage("Usage: /identity alt name set <altUuid> <newName>");
                         return true;
                     }
                     String altToken = args[3];
+                    String newName  = args[4];
 
                     // Allow users to accidentally type a display name; resolve it to UUID if so.
                     String resolved = api.getProfileAltUuidByName(p, altToken);
@@ -123,9 +124,15 @@ public class MCEngineIdentityCommand implements CommandExecutor {
                         return true;
                     }
 
-                    String desiredName = p.getName(); // set to player's current username
-                    boolean ok = MCEngineIdentityCommon.getApi().setProfileAltname(p, altUuid, desiredName);
-                    sender.sendMessage(ok ? ("Alt name set to '" + desiredName + "'.") : "Failed to set alt name.");
+                    // Prevent UNIQUE constraint violation: ensure no other alt already uses newName
+                    String conflictAlt = api.getProfileAltUuidByName(p, newName);
+                    if (conflictAlt != null && !conflictAlt.isEmpty() && !conflictAlt.equals(altUuid)) {
+                        sender.sendMessage("That name is already in use by another alt.");
+                        return true;
+                    }
+
+                    boolean ok = MCEngineIdentityCommon.getApi().setProfileAltname(p, altUuid, newName);
+                    sender.sendMessage(ok ? ("Alt name set to '" + newName + "'.") : "Failed to set alt name.");
                     return true;
                 }
 
@@ -168,12 +175,12 @@ public class MCEngineIdentityCommand implements CommandExecutor {
                     return true;
                 }
 
-                sender.sendMessage("Usage: /identity alt name set <altUuid> | /identity alt name change <oldName> <newName>");
+                sender.sendMessage("Usage: /identity alt name set <altUuid> <newName> | /identity alt name change <oldName> <newName>");
                 return true;
             }
 
             // Fallback help for /identity alt
-            sender.sendMessage("/identity alt create | switch <altUuid|name> | name set <altUuid> | name change <oldName> <newName>");
+            sender.sendMessage("/identity alt create | switch <altUuid|name> | name set <altUuid> <newName> | name change <oldName> <newName>");
             return true;
         }
 
@@ -257,7 +264,7 @@ public class MCEngineIdentityCommand implements CommandExecutor {
             return true;
         }
 
-        sender.sendMessage("/identity alt create | alt switch <altUuid|name> | alt name set <altUuid> | alt name change <oldName> <newName> | limit add <player> <amount> | limit get [player]");
+        sender.sendMessage("/identity alt create | alt switch <altUuid|name> | alt name set <altUuid> <newName> | alt name change <oldName> <newName> | limit add <player> <amount> | limit get [player]");
         return true;
     }
 }

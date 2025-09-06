@@ -58,12 +58,12 @@ repositories {
         }
     }
 
-    configureGitHubRepo('MCEngine Identity API', "https://maven.pkg.github.com/MCEngine-API/${repository_name}")
+    configureGitHubRepo('MCEngine Identity API', "https://maven.pkg.github.com/MCEngine-API/identity")
 }
 
 dependencies {
     compileOnly 'org.spigotmc:spigot-api:1.21.8-R0.1-SNAPSHOT'
-    compileOnly "io.github.mcengine:identity-api:2025.0.9-6"
+    compileOnly 'io.github.mcengine:identity-api:2025.0.9-7'
 }
 
 shadowJar {

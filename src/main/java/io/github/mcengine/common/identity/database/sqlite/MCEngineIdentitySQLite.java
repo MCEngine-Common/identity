@@ -16,6 +16,14 @@ import java.util.List;
  * This implementation establishes a persistent connection and ensures
  * tables exist for identities, alternatives, sessions, and permissions.
  * Enforces {@code identity.identity_limit} when creating new alternatives.
+ *
+ * <h3>Schema highlights (SQLite)</h3>
+ * <ul>
+ *   <li>{@code PRAGMA foreign_keys = ON} is enabled to enforce FKs.</li>
+ *   <li>{@code identity_uuid} is the <b>primary key</b> for {@code identity}.</li>
+ *   <li>{@code identity_session} uses {@code PRIMARY KEY (identity_uuid)} for a 1:1 row with identity.</li>
+ *   <li>Timestamps are stored as ISO-8601 strings; application code sets updates explicitly.</li>
+ * </ul>
  */
 public class MCEngineIdentitySQLite implements IMCEngineIdentityDB {
 
@@ -57,6 +65,10 @@ public class MCEngineIdentitySQLite implements IMCEngineIdentityDB {
         Connection tmp = null;
         try {
             tmp = DriverManager.getConnection(databaseUrl);
+            // Ensure FK enforcement
+            try (Statement pragma = tmp.createStatement()) {
+                pragma.execute("PRAGMA foreign_keys = ON");
+            }
             ensureSchema(tmp);
         } catch (SQLException e) {
             plugin.getLogger().warning("Failed to open SQLite connection: " + e.getMessage());
@@ -67,45 +79,59 @@ public class MCEngineIdentitySQLite implements IMCEngineIdentityDB {
 
     private void ensureSchema(Connection c) throws SQLException {
         try (Statement st = c.createStatement()) {
-            st.executeUpdate("CREATE TABLE IF NOT EXISTS identity (" +
-                    "identity_id INTEGER PRIMARY KEY AUTOINCREMENT," +
-                    "identity_uuid TEXT NOT NULL UNIQUE," +
-                    "identity_limit INTEGER NOT NULL DEFAULT 1," +
-                    "identity_created_at TEXT NULL," +
-                    "identity_updated_at TEXT NULL" +
-                    ")");
+            // identity: identity_uuid is PK
+            st.executeUpdate(
+                "CREATE TABLE IF NOT EXISTS identity (" +
+                "  identity_uuid TEXT PRIMARY KEY," +
+                "  identity_limit INTEGER NOT NULL DEFAULT 1," +
+                "  identity_created_at TEXT NOT NULL DEFAULT (datetime('now'))," +
+                "  identity_updated_at TEXT NOT NULL DEFAULT (datetime('now'))" +
+                ")"
+            );
 
-            st.executeUpdate("CREATE TABLE IF NOT EXISTS identity_alternative (" +
-                    "identity_alternative_uuid TEXT PRIMARY KEY," +
-                    "identity_uuid TEXT NOT NULL," +
-                    "identity_alternative_name TEXT NULL," +
-                    "identity_alternative_storage BLOB NULL," +
-                    "identity_alternative_created_at TEXT NULL," +
-                    "identity_alternative_updated_at TEXT NULL," +
-                    "FOREIGN KEY (identity_uuid) REFERENCES identity(identity_uuid) ON DELETE CASCADE" +
-                    ")");
+            // identity_alternative: PK on alt uuid, FK to identity, unique name per identity
+            st.executeUpdate(
+                "CREATE TABLE IF NOT EXISTS identity_alternative (" +
+                "  identity_alternative_uuid TEXT PRIMARY KEY," +
+                "  identity_uuid TEXT NOT NULL," +
+                "  identity_alternative_name TEXT NULL," +
+                "  identity_alternative_storage BLOB NULL," +
+                "  identity_alternative_created_at TEXT NOT NULL DEFAULT (datetime('now'))," +
+                "  identity_alternative_updated_at TEXT NOT NULL DEFAULT (datetime('now'))," +
+                "  FOREIGN KEY (identity_uuid) REFERENCES identity(identity_uuid) ON DELETE CASCADE" +
+                ")"
+            );
             st.executeUpdate("CREATE UNIQUE INDEX IF NOT EXISTS idx_identity_name ON identity_alternative(identity_uuid, identity_alternative_name)");
+            st.executeUpdate("CREATE INDEX IF NOT EXISTS idx_alt_identity ON identity_alternative(identity_uuid)");
+            st.executeUpdate("CREATE INDEX IF NOT EXISTS idx_alt_name ON identity_alternative(identity_alternative_name)");
 
-            st.executeUpdate("CREATE TABLE IF NOT EXISTS identity_session (" +
-                    "identity_session_id INTEGER PRIMARY KEY AUTOINCREMENT," +
-                    "identity_uuid TEXT NOT NULL," +
-                    "identity_alternative_uuid TEXT NULL," +
-                    "FOREIGN KEY (identity_uuid) REFERENCES identity(identity_uuid) ON DELETE CASCADE," +
-                    "FOREIGN KEY (identity_alternative_uuid) REFERENCES identity_alternative(identity_alternative_uuid) ON DELETE SET NULL" +
-                    ")");
-            st.executeUpdate("CREATE UNIQUE INDEX IF NOT EXISTS idx_identity_session ON identity_session(identity_uuid)");
+            // identity_session: exactly one row per identity (PK = identity_uuid)
+            st.executeUpdate(
+                "CREATE TABLE IF NOT EXISTS identity_session (" +
+                "  identity_uuid TEXT PRIMARY KEY," +
+                "  identity_alternative_uuid TEXT NULL," +
+                "  FOREIGN KEY (identity_uuid) REFERENCES identity(identity_uuid) ON DELETE CASCADE," +
+                "  FOREIGN KEY (identity_alternative_uuid) REFERENCES identity_alternative(identity_alternative_uuid) ON DELETE SET NULL" +
+                ")"
+            );
 
-            st.executeUpdate("CREATE TABLE IF NOT EXISTS identity_permission (" +
-                    "identity_permission_id INTEGER PRIMARY KEY AUTOINCREMENT," +
-                    "identity_uuid TEXT NOT NULL," +
-                    "identity_alternative_uuid TEXT NULL," +
-                    "identity_permission_name TEXT NOT NULL," +
-                    "identity_permission_created_at TEXT NULL," +
-                    "identity_permission_updated_at TEXT NULL," +
-                    "FOREIGN KEY (identity_uuid) REFERENCES identity(identity_uuid) ON DELETE CASCADE," +
-                    "FOREIGN KEY (identity_alternative_uuid) REFERENCES identity_alternative(identity_alternative_uuid) ON DELETE CASCADE" +
-                    ")");
+            // identity_permission: surrogate integer id; unique & helpful indexes
+            st.executeUpdate(
+                "CREATE TABLE IF NOT EXISTS identity_permission (" +
+                "  identity_permission_id INTEGER PRIMARY KEY AUTOINCREMENT," +
+                "  identity_uuid TEXT NOT NULL," +
+                "  identity_alternative_uuid TEXT NULL," +
+                "  identity_permission_name TEXT NOT NULL," +
+                "  identity_permission_created_at TEXT NOT NULL DEFAULT (datetime('now'))," +
+                "  identity_permission_updated_at TEXT NOT NULL DEFAULT (datetime('now'))," +
+                "  FOREIGN KEY (identity_uuid) REFERENCES identity(identity_uuid) ON DELETE CASCADE," +
+                "  FOREIGN KEY (identity_alternative_uuid) REFERENCES identity_alternative(identity_alternative_uuid) ON DELETE CASCADE" +
+                ")"
+            );
             st.executeUpdate("CREATE UNIQUE INDEX IF NOT EXISTS idx_perm ON identity_permission(identity_uuid, identity_alternative_uuid, identity_permission_name)");
+            st.executeUpdate("CREATE INDEX IF NOT EXISTS idx_perm_identity ON identity_permission(identity_uuid)");
+            st.executeUpdate("CREATE INDEX IF NOT EXISTS idx_perm_alt ON identity_permission(identity_alternative_uuid)");
+            st.executeUpdate("CREATE INDEX IF NOT EXISTS idx_perm_name ON identity_permission(identity_permission_name)");
         }
     }
 
@@ -312,7 +338,7 @@ public class MCEngineIdentitySQLite implements IMCEngineIdentityDB {
 
     /**
      * Saves the active alt's inventory payload.
-     * <p><b>SQLite fix:</b> uses a parameterized timestamp string instead of {@code NOW()}.</p>
+     * <p><b>SQLite fix:</b> uses a parameterized timestamp string instead of SQL {@code NOW()}.</p>
      */
     @Override
     public boolean saveAltInventory(Player player, byte[] payload) {
@@ -334,7 +360,7 @@ public class MCEngineIdentitySQLite implements IMCEngineIdentityDB {
                     "UPDATE identity_alternative SET identity_alternative_storage = ?, identity_alternative_updated_at = ? " +
                             "WHERE identity_alternative_uuid = ? AND identity_uuid = ?")) {
                 up.setBytes(1, payload);
-                up.setString(2, now); // <-- pass timestamp explicitly (SQLite has no NOW())
+                up.setString(2, now); // explicit timestamp string
                 up.setString(3, altUuid);
                 up.setString(4, identityUuid);
                 return up.executeUpdate() > 0;

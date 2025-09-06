@@ -21,7 +21,7 @@ import java.util.Locale;
  *   <li><b>/identity alt</b> → {@code create}, {@code switch}, {@code name}</li>
  *   <li><b>/identity alt switch &lt;alt&gt;</b> → suggests player's alts; if a <em>name</em> is typed, it converts to the corresponding <em>UUID</em>.</li>
  *   <li><b>/identity alt name</b> → {@code set}, {@code change}</li>
- *   <li><b>/identity alt name set &lt;altUuid&gt;</b> → suggests only alts that do <b>not</b> already have a display name</li>
+ *   <li><b>/identity alt name set &lt;altUuid&gt; &lt;newName&gt;</b> → suggests only alts that do <b>not</b> already have a display name for the UUID argument</li>
  *   <li><b>/identity alt name change &lt;oldName&gt; &lt;newName&gt;</b> → suggests only display-name alts for the first argument</li>
  *   <li><b>/identity limit</b> → {@code add} (if {@code mcengine.identity.limit.add}) and/or {@code get} (if {@code mcengine.identity.limit.get} or {@code mcengine.identity.limit.get.players})</li>
  *   <li><b>/identity limit add &lt;player&gt; &lt;amount&gt;</b> → suggests online player names and common amounts</li>
@@ -81,9 +81,16 @@ public class MCEngineIdentityTabCompleter implements TabCompleter {
                 if (args.length == 3) {
                     return filterPrefix(args[2], List.of("set", "change"));
                 }
-                // /identity alt name set <altUuid>
-                if (args.length == 4 && "set".equalsIgnoreCase(args[2])) {
-                    return filterPrefix(args[3], altsWithoutDisplayName(player));
+                // /identity alt name set <altUuid> <newName>
+                if ("set".equalsIgnoreCase(args[2])) {
+                    // argument #3 is <altUuid or name>, suggest only alts that don't have display names yet
+                    if (args.length == 4) {
+                        return filterPrefix(args[3], altsWithoutDisplayName(player));
+                    }
+                    // argument #4 is <newName> – no suggestions by default
+                    if (args.length == 5) {
+                        return Collections.emptyList();
+                    }
                 }
                 // /identity alt name change <oldName> <newName>
                 if ("change".equalsIgnoreCase(args[2])) {

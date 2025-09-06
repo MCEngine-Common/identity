@@ -12,6 +12,13 @@ import java.time.Instant;
  * <p>
  * Establishes a persistent connection and ensures a schema exists for identity data.
  * Enforces {@code identity.identity_limit} when creating new alternatives.
+ *
+ * <h3>Schema highlights (PostgreSQL)</h3>
+ * <ul>
+ *   <li>{@code identity_uuid} is the <b>primary key</b> for {@code identity}.</li>
+ *   <li>{@code identity_session} uses {@code PRIMARY KEY (identity_uuid)} to enforce one row per identity.</li>
+ *   <li>Timestamps default to {@code NOW()} (no {@code ON UPDATE} in Postgres; updates are handled in queries).</li>
+ * </ul>
  */
 public class MCEngineIdentityPostgreSQL implements IMCEngineIdentityDB {
 
@@ -57,45 +64,59 @@ public class MCEngineIdentityPostgreSQL implements IMCEngineIdentityDB {
 
     private void ensureSchema(Connection c) throws SQLException {
         try (Statement st = c.createStatement()) {
-            st.executeUpdate("CREATE TABLE IF NOT EXISTS identity (" +
-                    "identity_id SERIAL PRIMARY KEY," +
-                    "identity_uuid VARCHAR(36) UNIQUE NOT NULL," +
-                    "identity_limit INT NOT NULL DEFAULT 1," +
-                    "identity_created_at TIMESTAMP NULL," +
-                    "identity_updated_at TIMESTAMP NULL" +
-                    ")");
+            // identity: identity_uuid is PK; timestamps default to now()
+            st.executeUpdate(
+                "CREATE TABLE IF NOT EXISTS identity (" +
+                "  identity_uuid VARCHAR(36) PRIMARY KEY," +
+                "  identity_limit INT NOT NULL DEFAULT 1," +
+                "  identity_created_at TIMESTAMP NOT NULL DEFAULT NOW()," +
+                "  identity_updated_at TIMESTAMP NOT NULL DEFAULT NOW()" +
+                ")"
+            );
 
-            st.executeUpdate("CREATE TABLE IF NOT EXISTS identity_alternative (" +
-                    "identity_alternative_uuid VARCHAR(64) PRIMARY KEY," +
-                    "identity_uuid VARCHAR(36) NOT NULL," +
-                    "identity_alternative_name VARCHAR(64) NULL," +
-                    "identity_alternative_storage BYTEA NULL," +
-                    "identity_alternative_created_at TIMESTAMP NULL," +
-                    "identity_alternative_updated_at TIMESTAMP NULL," +
-                    "FOREIGN KEY (identity_uuid) REFERENCES identity(identity_uuid) ON DELETE CASCADE" +
-                    ")");
+            // identity_alternative: PK on alt uuid, FK to identity, unique name per identity (NULLs allowed in PG)
+            st.executeUpdate(
+                "CREATE TABLE IF NOT EXISTS identity_alternative (" +
+                "  identity_alternative_uuid VARCHAR(64) PRIMARY KEY," +
+                "  identity_uuid VARCHAR(36) NOT NULL," +
+                "  identity_alternative_name VARCHAR(64) NULL," +
+                "  identity_alternative_storage BYTEA NULL," +
+                "  identity_alternative_created_at TIMESTAMP NOT NULL DEFAULT NOW()," +
+                "  identity_alternative_updated_at TIMESTAMP NOT NULL DEFAULT NOW()," +
+                "  CONSTRAINT fk_alt_identity FOREIGN KEY (identity_uuid) REFERENCES identity(identity_uuid) ON DELETE CASCADE" +
+                ")"
+            );
             st.executeUpdate("CREATE UNIQUE INDEX IF NOT EXISTS uniq_identity_name ON identity_alternative(identity_uuid, identity_alternative_name)");
+            st.executeUpdate("CREATE INDEX IF NOT EXISTS idx_alt_identity ON identity_alternative(identity_uuid)");
+            st.executeUpdate("CREATE INDEX IF NOT EXISTS idx_alt_name ON identity_alternative(identity_alternative_name)");
 
-            st.executeUpdate("CREATE TABLE IF NOT EXISTS identity_session (" +
-                    "identity_session_id SERIAL PRIMARY KEY," +
-                    "identity_uuid VARCHAR(36) NOT NULL," +
-                    "identity_alternative_uuid VARCHAR(64) NULL," +
-                    "FOREIGN KEY (identity_uuid) REFERENCES identity(identity_uuid) ON DELETE CASCADE," +
-                    "FOREIGN KEY (identity_alternative_uuid) REFERENCES identity_alternative(identity_alternative_uuid) ON DELETE SET NULL," +
-                    "UNIQUE (identity_uuid)" +
-                    ")");
+            // identity_session: exactly one row per identity
+            st.executeUpdate(
+                "CREATE TABLE IF NOT EXISTS identity_session (" +
+                "  identity_uuid VARCHAR(36) PRIMARY KEY," +
+                "  identity_alternative_uuid VARCHAR(64) NULL," +
+                "  CONSTRAINT fk_session_identity FOREIGN KEY (identity_uuid) REFERENCES identity(identity_uuid) ON DELETE CASCADE," +
+                "  CONSTRAINT fk_session_alt FOREIGN KEY (identity_alternative_uuid) REFERENCES identity_alternative(identity_alternative_uuid) ON DELETE SET NULL" +
+                ")"
+            );
 
-            st.executeUpdate("CREATE TABLE IF NOT EXISTS identity_permission (" +
-                    "identity_permission_id SERIAL PRIMARY KEY," +
-                    "identity_uuid VARCHAR(36) NOT NULL," +
-                    "identity_alternative_uuid VARCHAR(64) NULL," +
-                    "identity_permission_name VARCHAR(64) NOT NULL," +
-                    "identity_permission_created_at TIMESTAMP NULL," +
-                    "identity_permission_updated_at TIMESTAMP NULL," +
-                    "FOREIGN KEY (identity_uuid) REFERENCES identity(identity_uuid) ON DELETE CASCADE," +
-                    "FOREIGN KEY (identity_alternative_uuid) REFERENCES identity_alternative(identity_alternative_uuid) ON DELETE CASCADE," +
-                    "UNIQUE (identity_uuid, identity_alternative_uuid, identity_permission_name)" +
-                    ")");
+            // identity_permission: surrogate id; indexes for common filters
+            st.executeUpdate(
+                "CREATE TABLE IF NOT EXISTS identity_permission (" +
+                "  identity_permission_id BIGSERIAL PRIMARY KEY," +
+                "  identity_uuid VARCHAR(36) NOT NULL," +
+                "  identity_alternative_uuid VARCHAR(64) NULL," +
+                "  identity_permission_name VARCHAR(64) NOT NULL," +
+                "  identity_permission_created_at TIMESTAMP NOT NULL DEFAULT NOW()," +
+                "  identity_permission_updated_at TIMESTAMP NOT NULL DEFAULT NOW()," +
+                "  CONSTRAINT fk_perm_identity FOREIGN KEY (identity_uuid) REFERENCES identity(identity_uuid) ON DELETE CASCADE," +
+                "  CONSTRAINT fk_perm_alt FOREIGN KEY (identity_alternative_uuid) REFERENCES identity_alternative(identity_alternative_uuid) ON DELETE CASCADE," +
+                "  CONSTRAINT uniq_perm UNIQUE (identity_uuid, identity_alternative_uuid, identity_permission_name)" +
+                ")"
+            );
+            st.executeUpdate("CREATE INDEX IF NOT EXISTS idx_perm_identity ON identity_permission(identity_uuid)");
+            st.executeUpdate("CREATE INDEX IF NOT EXISTS idx_perm_alt ON identity_permission(identity_alternative_uuid)");
+            st.executeUpdate("CREATE INDEX IF NOT EXISTS idx_perm_name ON identity_permission(identity_permission_name)");
         }
     }
 
@@ -387,24 +408,11 @@ public class MCEngineIdentityPostgreSQL implements IMCEngineIdentityDB {
     public int getLimit(Player player) {
         if (conn == null) return 1;
         String identityUuid = player.getUniqueId().toString();
-        Timestamp now = Timestamp.from(Instant.now());
-        try {
-            // upsert identity if missing (default limit=1)
-            try (PreparedStatement ps = conn.prepareStatement(
-                    "INSERT INTO identity (identity_uuid, identity_limit, identity_created_at, identity_updated_at) VALUES (?, 1, ?, ?) " +
-                            "ON CONFLICT(identity_uuid) DO UPDATE SET identity_updated_at=EXCLUDED.identity_updated_at")) {
-                ps.setString(1, identityUuid);
-                ps.setTimestamp(2, now);
-                ps.setTimestamp(3, now);
-                ps.executeUpdate();
-            }
-            // read limit
-            try (PreparedStatement ps = conn.prepareStatement(
-                    "SELECT identity_limit FROM identity WHERE identity_uuid = ?")) {
-                ps.setString(1, identityUuid);
-                try (ResultSet rs = ps.executeQuery()) {
-                    if (rs.next()) return rs.getInt(1);
-                }
+        try (PreparedStatement ps = conn.prepareStatement(
+                "SELECT identity_limit FROM identity WHERE identity_uuid = ?")) {
+            ps.setString(1, identityUuid);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return rs.getInt(1);
             }
         } catch (SQLException e) {
             plugin.getLogger().warning("getLimit failed: " + e.getMessage());
