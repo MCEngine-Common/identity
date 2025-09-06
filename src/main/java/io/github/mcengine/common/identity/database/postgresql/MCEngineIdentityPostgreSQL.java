@@ -100,18 +100,17 @@ public class MCEngineIdentityPostgreSQL implements IMCEngineIdentityDB {
                 ")"
             );
 
-            // identity_permission: surrogate id; indexes for common filters
+            // identity_permission: composite PK to prevent duplicates per (identity_uuid, identity_alternative_uuid, name)
             st.executeUpdate(
                 "CREATE TABLE IF NOT EXISTS identity_permission (" +
-                "  identity_permission_id BIGSERIAL PRIMARY KEY," +
                 "  identity_uuid VARCHAR(36) NOT NULL," +
-                "  identity_alternative_uuid VARCHAR(64) NULL," +
+                "  identity_alternative_uuid VARCHAR(64) NOT NULL," +
                 "  identity_permission_name VARCHAR(64) NOT NULL," +
                 "  identity_permission_created_at TIMESTAMP NOT NULL DEFAULT NOW()," +
                 "  identity_permission_updated_at TIMESTAMP NOT NULL DEFAULT NOW()," +
                 "  CONSTRAINT fk_perm_identity FOREIGN KEY (identity_uuid) REFERENCES identity(identity_uuid) ON DELETE CASCADE," +
                 "  CONSTRAINT fk_perm_alt FOREIGN KEY (identity_alternative_uuid) REFERENCES identity_alternative(identity_alternative_uuid) ON DELETE CASCADE," +
-                "  CONSTRAINT uniq_perm UNIQUE (identity_uuid, identity_alternative_uuid, identity_permission_name)" +
+                "  PRIMARY KEY (identity_uuid, identity_alternative_uuid, identity_permission_name)" +
                 ")"
             );
             st.executeUpdate("CREATE INDEX IF NOT EXISTS idx_perm_identity ON identity_permission(identity_uuid)");

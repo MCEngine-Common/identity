@@ -115,20 +115,20 @@ public class MCEngineIdentitySQLite implements IMCEngineIdentityDB {
                 ")"
             );
 
-            // identity_permission: surrogate integer id; unique & helpful indexes
+            // identity_permission: composite PK to prevent duplicates per (identity_uuid, identity_alternative_uuid, name)
             st.executeUpdate(
                 "CREATE TABLE IF NOT EXISTS identity_permission (" +
-                "  identity_permission_id INTEGER PRIMARY KEY AUTOINCREMENT," +
                 "  identity_uuid TEXT NOT NULL," +
-                "  identity_alternative_uuid TEXT NULL," +
+                "  identity_alternative_uuid TEXT NOT NULL," +
                 "  identity_permission_name TEXT NOT NULL," +
                 "  identity_permission_created_at TEXT NOT NULL DEFAULT (datetime('now'))," +
                 "  identity_permission_updated_at TEXT NOT NULL DEFAULT (datetime('now'))," +
                 "  FOREIGN KEY (identity_uuid) REFERENCES identity(identity_uuid) ON DELETE CASCADE," +
-                "  FOREIGN KEY (identity_alternative_uuid) REFERENCES identity_alternative(identity_alternative_uuid) ON DELETE CASCADE" +
+                "  FOREIGN KEY (identity_alternative_uuid) REFERENCES identity_alternative(identity_alternative_uuid) ON DELETE CASCADE," +
+                "  PRIMARY KEY (identity_uuid, identity_alternative_uuid, identity_permission_name)" +
                 ")"
             );
-            st.executeUpdate("CREATE UNIQUE INDEX IF NOT EXISTS idx_perm ON identity_permission(identity_uuid, identity_alternative_uuid, identity_permission_name)");
+            // (Keep the helpful secondary indexes)
             st.executeUpdate("CREATE INDEX IF NOT EXISTS idx_perm_identity ON identity_permission(identity_uuid)");
             st.executeUpdate("CREATE INDEX IF NOT EXISTS idx_perm_alt ON identity_permission(identity_alternative_uuid)");
             st.executeUpdate("CREATE INDEX IF NOT EXISTS idx_perm_name ON identity_permission(identity_permission_name)");
