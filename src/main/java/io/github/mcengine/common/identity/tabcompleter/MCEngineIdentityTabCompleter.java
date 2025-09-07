@@ -38,10 +38,14 @@ import java.util.Locale;
  */
 public class MCEngineIdentityTabCompleter implements TabCompleter {
 
-    /** Shared Identity common API used for DB access and logging. */
+    /**
+     * Shared Identity common API used for DB access and logging.
+     */
     private final MCEngineIdentityCommon api;
 
-    /** Permission node required to offer the {@code perm} command path. */
+    /**
+     * Permission node required to offer the {@code perm} command path.
+     */
     private static final String PERM_PERMISSION_ADD = "mcengine.identity.permission.add";
 
     /**
@@ -71,30 +75,33 @@ public class MCEngineIdentityTabCompleter implements TabCompleter {
             if (player.hasPermission(PERM_PERMISSION_ADD)) {
                 roots.add("perm");
             }
-            return filterPrefix(args[0], roots);
+            return MCEngineIdentityTabCompleterUtil.filterPrefix(args[0], roots);
         }
 
         // /identity alt ...
         if ("alt".equalsIgnoreCase(args[0])) {
             if (args.length == 2) {
-                return filterPrefix(args[1], List.of("create", "switch", "name"));
+                return MCEngineIdentityTabCompleterUtil.filterPrefix(args[1], List.of("create", "switch", "name"));
             }
 
             // /identity alt switch <altNameOrUuid>
             if (args.length == 3 && "switch".equalsIgnoreCase(args[1])) {
-                return suggestionsForAltToken(player, args[2]);
+                return MCEngineIdentityTabCompleterUtil.suggestionsForAltToken(api, player, args[2]);
             }
 
             // /identity alt name ...
             if ("name".equalsIgnoreCase(args[1])) {
                 if (args.length == 3) {
-                    return filterPrefix(args[2], List.of("set", "change"));
+                    return MCEngineIdentityTabCompleterUtil.filterPrefix(args[2], List.of("set", "change"));
                 }
                 // /identity alt name set <altUuid> <newName>
                 if ("set".equalsIgnoreCase(args[2])) {
                     // argument #3 is <altUuid or name>, suggest only alts that don't have display names yet
                     if (args.length == 4) {
-                        return filterPrefix(args[3], altsWithoutDisplayName(player));
+                        return MCEngineIdentityTabCompleterUtil.filterPrefix(
+                                args[3],
+                                MCEngineIdentityTabCompleterUtil.altsWithoutDisplayName(api, player)
+                        );
                     }
                     // argument #4 is <newName> – no suggestions by default
                     if (args.length == 5) {
@@ -105,7 +112,10 @@ public class MCEngineIdentityTabCompleter implements TabCompleter {
                 if ("change".equalsIgnoreCase(args[2])) {
                     // First argument is an existing display name
                     if (args.length == 4) {
-                        return filterPrefix(args[3], altsWithDisplayNameOnly(player));
+                        return MCEngineIdentityTabCompleterUtil.filterPrefix(
+                                args[3],
+                                MCEngineIdentityTabCompleterUtil.altsWithDisplayNameOnly(api, player)
+                        );
                     }
                     // Second argument (new name): no suggestions by default
                     if (args.length == 5) {
@@ -129,17 +139,18 @@ public class MCEngineIdentityTabCompleter implements TabCompleter {
                 if (canGet) {
                     subs.add("get"); // real token only
                 }
-                return filterPrefix(args[1], subs);
+                return MCEngineIdentityTabCompleterUtil.filterPrefix(args[1], subs);
             }
 
             // /identity limit add <player> <amount>
             if ("add".equalsIgnoreCase(args[1]) && player.hasPermission("mcengine.identity.limit.add")) {
                 if (args.length == 3) {
-                    List<String> names = new ArrayList<>();
-                    for (Player p : Bukkit.getOnlinePlayers()) names.add(p.getName());
-                    return filterPrefix(args[2], names);
+                    return MCEngineIdentityTabCompleterUtil.filterPrefix(
+                            args[2],
+                            MCEngineIdentityTabCompleterUtil.onlinePlayerNames()
+                    );
                 } else if (args.length == 4) {
-                    return filterPrefix(args[3], List.of("1", "5", "10"));
+                    return MCEngineIdentityTabCompleterUtil.filterPrefix(args[3], List.of("1", "5", "10"));
                 }
                 return Collections.emptyList();
             }
@@ -147,9 +158,10 @@ public class MCEngineIdentityTabCompleter implements TabCompleter {
             // /identity limit get [player]
             if ("get".equalsIgnoreCase(args[1])) {
                 if (args.length == 3 && player.hasPermission("mcengine.identity.limit.get.players")) {
-                    List<String> names = new ArrayList<>();
-                    for (Player p : Bukkit.getOnlinePlayers()) names.add(p.getName());
-                    return filterPrefix(args[2], names);
+                    return MCEngineIdentityTabCompleterUtil.filterPrefix(
+                            args[2],
+                            MCEngineIdentityTabCompleterUtil.onlinePlayerNames()
+                    );
                 }
                 return Collections.emptyList();
             }
@@ -162,14 +174,14 @@ public class MCEngineIdentityTabCompleter implements TabCompleter {
             if (!player.hasPermission(PERM_PERMISSION_ADD)) return Collections.emptyList();
 
             if (args.length == 2) {
-                return filterPrefix(args[1], List.of("add"));
+                return MCEngineIdentityTabCompleterUtil.filterPrefix(args[1], List.of("add"));
             }
 
             if ("add".equalsIgnoreCase(args[1])) {
                 // /identity perm add <altUuid|name> <permission>
                 if (args.length == 3) {
                     // suggest player's alts (either names or UUIDs)
-                    return suggestionsForAltToken(player, args[2]);
+                    return MCEngineIdentityTabCompleterUtil.suggestionsForAltToken(api, player, args[2]);
                 }
                 if (args.length == 4) {
                     // permission suggestions: none by default (free text)
@@ -182,79 +194,5 @@ public class MCEngineIdentityTabCompleter implements TabCompleter {
         }
 
         return Collections.emptyList();
-    }
-
-    /**
-     * Build suggestions for an alt token:
-     * <ol>
-     *   <li>If the token matches an existing display name, return the corresponding UUID (normalization).</li>
-     *   <li>Otherwise, return the filtered list of the player's alts (display names if set, else UUIDs).</li>
-     * </ol>
-     *
-     * @param player owner of the alts
-     * @param token  current argument token (may be partial)
-     * @return suggestions that keep the executed command working with UUIDs
-     */
-    private List<String> suggestionsForAltToken(Player player, String token) {
-        if (token != null && !token.isEmpty()) {
-            String resolvedUuid = api.getProfileAltUuidByName(player, token);
-            if (resolvedUuid != null && !resolvedUuid.isEmpty()) {
-                return List.of(resolvedUuid);
-            }
-        }
-        return filterPrefix(token, api.getProfileAllAlt(player));
-    }
-
-    /**
-     * Returns only alts that do not have a display name yet (i.e., those returned as UUIDs).
-     * Uses a heuristic that matches our alt UUID format: <pre>{identity-uuid}-{index}</pre>.
-     */
-    private List<String> altsWithoutDisplayName(Player player) {
-        List<String> all = api.getProfileAllAlt(player);
-        List<String> onlyUuids = new ArrayList<>();
-        for (String s : all) {
-            if (looksLikeAltUuid(s)) {
-                onlyUuids.add(s);
-            }
-        }
-        return onlyUuids;
-    }
-
-    /**
-     * Returns only alts that currently have a display name (i.e., those returned as non-UUIDs).
-     */
-    private List<String> altsWithDisplayNameOnly(Player player) {
-        List<String> all = api.getProfileAllAlt(player);
-        List<String> names = new ArrayList<>();
-        for (String s : all) {
-            if (!looksLikeAltUuid(s)) {
-                names.add(s);
-            }
-        }
-        return names;
-    }
-
-    /** Heuristic check for an alt UUID string: {@code <uuid-v4>-<number>}. */
-    private boolean looksLikeAltUuid(String s) {
-        return s != null && s.matches("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}-\\d+$");
-    }
-
-    /**
-     * Filters suggestions by a case-insensitive prefix.
-     *
-     * @param prefix      current typed token
-     * @param suggestions full candidate list
-     * @return filtered list preserving original order
-     */
-    private List<String> filterPrefix(String prefix, List<String> suggestions) {
-        if (prefix == null || prefix.isEmpty()) return new ArrayList<>(suggestions);
-        String p = prefix.toLowerCase(Locale.ROOT);
-        List<String> out = new ArrayList<>();
-        for (String s : suggestions) {
-            if (s != null && s.toLowerCase(Locale.ROOT).startsWith(p)) {
-                out.add(s);
-            }
-        }
-        return out;
     }
 }
