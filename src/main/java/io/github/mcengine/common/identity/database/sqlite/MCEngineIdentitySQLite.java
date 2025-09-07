@@ -388,6 +388,40 @@ public class MCEngineIdentitySQLite implements IMCEngineIdentityDB {
         }
     }
 
+    @Override
+    public boolean getProfileAltPermission(Player player, String altUuid, String permName) {
+        if (conn == null) return false;
+        if (altUuid == null || altUuid.isEmpty() || permName == null || permName.isEmpty()) return false;
+
+        final String identityUuid = player.getUniqueId().toString();
+        try {
+            // Validate alt belongs to player's identity
+            try (PreparedStatement chk = conn.prepareStatement(
+                    "SELECT 1 FROM identity_alternative WHERE identity_alternative_uuid=? AND identity_uuid=?")) {
+                chk.setString(1, altUuid);
+                chk.setString(2, identityUuid);
+                try (ResultSet rs = chk.executeQuery()) {
+                    if (!rs.next()) return false;
+                }
+            }
+
+            // Existence check
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "SELECT 1 FROM identity_permission WHERE identity_uuid=? AND identity_alternative_uuid=? AND identity_permission_name=? LIMIT 1")) {
+                ps.setString(1, identityUuid);
+                ps.setString(2, altUuid);
+                ps.setString(3, permName);
+                try (ResultSet rs = ps.executeQuery()) {
+                    return rs.next();
+                }
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().warning("getProfileAltPermission failed: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
+
     /**
      * Saves the active alt's inventory payload.
      * <p><b>SQLite fix:</b> uses a parameterized timestamp string instead of SQL {@code NOW()}.</p>

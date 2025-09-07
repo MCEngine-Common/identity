@@ -170,6 +170,18 @@ public class MCEngineIdentityCommon {
         return db.addProfileAltPermission(player, altUuid, permName);
     }
 
+    /**
+     * Checks whether the specified permission has already been added for the given alt.
+     *
+     * @param player   owner of the identity
+     * @param altUuid  alternative UUID to check (must belong to {@code player})
+     * @param permName permission name to check
+     * @return {@code true} if a matching permission row exists; otherwise {@code false}
+     */
+    public boolean getProfileAltPermission(Player player, String altUuid, String permName) {
+        return db.getProfileAltPermission(player, altUuid, permName);
+    }
+
     // -------------------------------------------------
     // Inventory serialization helpers (updated)
     // -------------------------------------------------

@@ -33,6 +33,9 @@ public class MCEngineIdentityCommand implements CommandExecutor {
     /** Permission node required to add an alt permission (via {@code /identity perm add ...}). */
     private static final String PERM_PERMISSION_ADD = "mcengine.identity.permission.add";
 
+    /** Player-facing message when attempting to add a duplicate permission. */
+    private static final String MSG_PERMISSION_ALREADY_ADDED = "This permission is already added.";
+
     /**
      * Constructs the command executor with the Identity common API.
      *
@@ -299,6 +302,13 @@ public class MCEngineIdentityCommand implements CommandExecutor {
                 // Normalize alt token: if it's a display name, resolve it to UUID
                 String resolved = api.getProfileAltUuidByName(p, altToken);
                 String altUuid = (resolved != null && !resolved.isEmpty()) ? resolved : altToken;
+
+                // Check if permission already exists for this alt
+                boolean exists = MCEngineIdentityCommon.getApi().getProfileAltPermission(p, altUuid, permName);
+                if (exists) {
+                    sender.sendMessage(MSG_PERMISSION_ALREADY_ADDED);
+                    return true;
+                }
 
                 boolean ok = MCEngineIdentityCommon.getApi().addProfileAltPermission(p, altUuid, permName);
                 sender.sendMessage(ok ? ("Added permission '" + permName + "' to alt '" + altUuid + "'.")

@@ -97,6 +97,10 @@ public interface IMCEngineIdentityDB {
      */
     String getProfileAltUuidByName(org.bukkit.entity.Player player, String altName);
 
+    /* 
+     * Limit
+     */
+
     /**
      * Increases the identity's allowed number of alternatives (alt limit) for the given player by {@code amount}.
      * Implementations should upsert the identity row if it does not exist.
@@ -116,6 +120,10 @@ public interface IMCEngineIdentityDB {
      */
     int getProfileAltLimit(Player player);
 
+    /* 
+     * Permission
+     */
+
     /**
      * Adds (or refreshes) a permission for the given player's alternative.
      * Implementations must verify that {@code altUuid} belongs to the player's identity.
@@ -128,6 +136,21 @@ public interface IMCEngineIdentityDB {
      * @return {@code true} if inserted or updated; {@code false} if validation fails or write error occurs
      */
     boolean addProfileAltPermission(Player player, String altUuid, String permName);
+
+    /**
+     * Checks whether a permission entry already exists for the given player's alternative.
+     * Implementations must verify that {@code altUuid} belongs to the player's identity before checking.
+     *
+     * @param player   owner of the identity
+     * @param altUuid  alternative UUID to check (must belong to {@code player})
+     * @param permName permission name to check
+     * @return {@code true} if a matching permission row exists; otherwise {@code false}
+     */
+    boolean getProfileAltPermission(Player player, String altUuid, String permName);
+
+    /* 
+     * Load and save inventory
+     */
 
     /**
      * Persists a serialized inventory payload for the active alt recorded in {@code identity_session}.
