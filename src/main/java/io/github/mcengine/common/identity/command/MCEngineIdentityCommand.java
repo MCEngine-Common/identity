@@ -19,6 +19,7 @@ import org.bukkit.entity.Player;
  *     <li>{@code limit add &lt;player&gt; &lt;amount&gt;} (requires {@code mcengine.identity.limit.add})</li>
  *     <li>{@code limit get} (self; requires {@code mcengine.identity.limit.get})</li>
  *     <li>{@code limit get &lt;player&gt;} (others; requires {@code mcengine.identity.limit.get.players})</li>
+ *     <li>{@code perm add &lt;altUuid|name&gt; &lt;permission&gt;} (requires {@code mcengine.identity.permission.add})</li>
  * </ul>
  *
  * <p>Note: manual save/load commands have been removed since inventory
@@ -28,6 +29,9 @@ public class MCEngineIdentityCommand implements CommandExecutor {
 
     /** Identity common API used to perform all identity and alt operations. */
     private final MCEngineIdentityCommon api;
+
+    /** Permission node required to add an alt permission (via {@code /identity perm add ...}). */
+    private static final String PERM_PERMISSION_ADD = "mcengine.identity.permission.add";
 
     /**
      * Constructs the command executor with the Identity common API.
@@ -43,7 +47,7 @@ public class MCEngineIdentityCommand implements CommandExecutor {
         if (!command.getName().equalsIgnoreCase("identity")) return false;
 
         if (args.length == 0) {
-            sender.sendMessage("/identity alt create | alt switch <altUuid|name> | alt name set <altUuid> <newName> | alt name change <oldName> <newName> | limit add <player> <amount> | limit get [player]");
+            sender.sendMessage("/identity alt create | alt switch <altUuid|name> | alt name set <altUuid> <newName> | alt name change <oldName> <newName> | limit add <player> <amount> | limit get [player] | perm add <altUuid|name> <permission>");
             return true;
         }
         String sub = args[0].toLowerCase();
@@ -264,7 +268,49 @@ public class MCEngineIdentityCommand implements CommandExecutor {
             return true;
         }
 
-        sender.sendMessage("/identity alt create | alt switch <altUuid|name> | alt name set <altUuid> <newName> | alt name change <oldName> <newName> | limit add <player> <amount> | limit get [player]");
+        // -------- /identity perm ... --------
+        if ("perm".equals(sub)) {
+            if (!(sender instanceof Player)) {
+                sender.sendMessage("Players only.");
+                return true;
+            }
+            Player p = (Player) sender;
+
+            if (!p.hasPermission(PERM_PERMISSION_ADD)) {
+                sender.sendMessage("You don't have permission (" + PERM_PERMISSION_ADD + ").");
+                return true;
+            }
+
+            if (args.length < 2) {
+                sender.sendMessage("/identity perm add <altUuid|name> <permission>");
+                return true;
+            }
+
+            String op = args[1].toLowerCase();
+            if ("add".equals(op)) {
+                if (args.length < 4) {
+                    sender.sendMessage("Usage: /identity perm add <altUuid|name> <permission>");
+                    return true;
+                }
+
+                String altToken = args[2];
+                String permName = args[3];
+
+                // Normalize alt token: if it's a display name, resolve it to UUID
+                String resolved = api.getProfileAltUuidByName(p, altToken);
+                String altUuid = (resolved != null && !resolved.isEmpty()) ? resolved : altToken;
+
+                boolean ok = MCEngineIdentityCommon.getApi().addProfileAltPermission(p, altUuid, permName);
+                sender.sendMessage(ok ? ("Added permission '" + permName + "' to alt '" + altUuid + "'.")
+                                      : "Failed to add permission (invalid alt or database error).");
+                return true;
+            }
+
+            sender.sendMessage("/identity perm add <altUuid|name> <permission>");
+            return true;
+        }
+
+        sender.sendMessage("/identity alt create | alt switch <altUuid|name> | alt name set <altUuid> <newName> | alt name change <oldName> <newName> | limit add <player> <amount> | limit get [player] | perm add <altUuid|name> <permission>");
         return true;
     }
 }

@@ -336,6 +336,58 @@ public class MCEngineIdentitySQLite implements IMCEngineIdentityDB {
         return 1;
     }
 
+    @Override
+    public boolean addProfileAltPermission(Player player, String altUuid, String permName) {
+        if (conn == null) return false;
+        if (altUuid == null || altUuid.isEmpty() || permName == null || permName.isEmpty()) return false;
+
+        final String identityUuid = player.getUniqueId().toString();
+        final String now = Instant.now().toString();
+
+        try {
+            // Validate alt belongs to player's identity
+            try (PreparedStatement chk = conn.prepareStatement(
+                    "SELECT 1 FROM identity_alternative WHERE identity_alternative_uuid=? AND identity_uuid=?")) {
+                chk.setString(1, altUuid);
+                chk.setString(2, identityUuid);
+                try (ResultSet rs = chk.executeQuery()) {
+                    if (!rs.next()) return false;
+                }
+            }
+
+            // Try insert; if duplicate, refresh updated_at
+            int ins;
+            try (PreparedStatement insStmt = conn.prepareStatement(
+                    "INSERT OR IGNORE INTO identity_permission (" +
+                            "identity_uuid, identity_alternative_uuid, identity_permission_name, " +
+                            "identity_permission_created_at, identity_permission_updated_at) " +
+                            "VALUES (?,?,?,?,?)")) {
+                insStmt.setString(1, identityUuid);
+                insStmt.setString(2, altUuid);
+                insStmt.setString(3, permName);
+                insStmt.setString(4, now);
+                insStmt.setString(5, now);
+                ins = insStmt.executeUpdate();
+            }
+            if (ins > 0) return true;
+
+            // Duplicate → bump updated_at
+            try (PreparedStatement up = conn.prepareStatement(
+                    "UPDATE identity_permission SET identity_permission_updated_at=? " +
+                            "WHERE identity_uuid=? AND identity_alternative_uuid=? AND identity_permission_name=?")) {
+                up.setString(1, now);
+                up.setString(2, identityUuid);
+                up.setString(3, altUuid);
+                up.setString(4, permName);
+                return up.executeUpdate() > 0;
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().warning("addProfileAltPermission failed: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
+
     /**
      * Saves the active alt's inventory payload.
      * <p><b>SQLite fix:</b> uses a parameterized timestamp string instead of SQL {@code NOW()}.</p>

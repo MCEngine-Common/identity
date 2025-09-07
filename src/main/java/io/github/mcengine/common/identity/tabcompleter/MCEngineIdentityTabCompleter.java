@@ -17,7 +17,7 @@ import java.util.Locale;
  * <p>
  * Completion paths:
  * <ul>
- *   <li><b>/identity</b> → {@code alt} (always), {@code limit} (if sender has any related permission)</li>
+ *   <li><b>/identity</b> → {@code alt} (always), {@code limit} (if sender has any related permission), {@code perm} (if sender can add permissions)</li>
  *   <li><b>/identity alt</b> → {@code create}, {@code switch}, {@code name}</li>
  *   <li><b>/identity alt switch &lt;alt&gt;</b> → suggests player's alts; if a <em>name</em> is typed, it converts to the corresponding <em>UUID</em>.</li>
  *   <li><b>/identity alt name</b> → {@code set}, {@code change}</li>
@@ -26,6 +26,8 @@ import java.util.Locale;
  *   <li><b>/identity limit</b> → {@code add} (if {@code mcengine.identity.limit.add}) and/or {@code get} (if {@code mcengine.identity.limit.get} or {@code mcengine.identity.limit.get.players})</li>
  *   <li><b>/identity limit add &lt;player&gt; &lt;amount&gt;</b> → suggests online player names and common amounts</li>
  *   <li><b>/identity limit get &lt;player&gt;</b> → suggests online player names (only if {@code mcengine.identity.limit.get.players})</li>
+ *   <li><b>/identity perm</b> → {@code add} (if {@code mcengine.identity.permission.add})</li>
+ *   <li><b>/identity perm add &lt;altUuid|name&gt; &lt;permission&gt;</b> → suggests player's alts for the alt argument</li>
  * </ul>
  * <p>
  * This implementation performs <b>no direct SQL</b>. It resolves:
@@ -38,6 +40,9 @@ public class MCEngineIdentityTabCompleter implements TabCompleter {
 
     /** Shared Identity common API used for DB access and logging. */
     private final MCEngineIdentityCommon api;
+
+    /** Permission node required to offer the {@code perm} command path. */
+    private static final String PERM_PERMISSION_ADD = "mcengine.identity.permission.add";
 
     /**
      * Constructs the tab completer with the Identity common API.
@@ -57,10 +62,14 @@ public class MCEngineIdentityTabCompleter implements TabCompleter {
         if (args.length == 1) {
             List<String> roots = new ArrayList<>();
             roots.add("alt");
+
             if (player.hasPermission("mcengine.identity.limit.add")
                     || player.hasPermission("mcengine.identity.limit.get")
                     || player.hasPermission("mcengine.identity.limit.get.players")) {
                 roots.add("limit");
+            }
+            if (player.hasPermission(PERM_PERMISSION_ADD)) {
+                roots.add("perm");
             }
             return filterPrefix(args[0], roots);
         }
@@ -141,6 +150,30 @@ public class MCEngineIdentityTabCompleter implements TabCompleter {
                     List<String> names = new ArrayList<>();
                     for (Player p : Bukkit.getOnlinePlayers()) names.add(p.getName());
                     return filterPrefix(args[2], names);
+                }
+                return Collections.emptyList();
+            }
+
+            return Collections.emptyList();
+        }
+
+        // /identity perm ...
+        if ("perm".equalsIgnoreCase(args[0])) {
+            if (!player.hasPermission(PERM_PERMISSION_ADD)) return Collections.emptyList();
+
+            if (args.length == 2) {
+                return filterPrefix(args[1], List.of("add"));
+            }
+
+            if ("add".equalsIgnoreCase(args[1])) {
+                // /identity perm add <altUuid|name> <permission>
+                if (args.length == 3) {
+                    // suggest player's alts (either names or UUIDs)
+                    return suggestionsForAltToken(player, args[2]);
+                }
+                if (args.length == 4) {
+                    // permission suggestions: none by default (free text)
+                    return Collections.emptyList();
                 }
                 return Collections.emptyList();
             }

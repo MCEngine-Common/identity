@@ -117,6 +117,19 @@ public interface IMCEngineIdentityDB {
     int getLimit(Player player);
 
     /**
+     * Adds (or refreshes) a permission for the given player's alternative.
+     * Implementations must verify that {@code altUuid} belongs to the player's identity.
+     * On duplicates (same identity, alt, and permission name), the row's
+     * {@code identity_permission_updated_at} should be updated.
+     *
+     * @param player   owner of the identity
+     * @param altUuid  alternative UUID that will receive the permission
+     * @param permName permission name (non-null, non-empty)
+     * @return {@code true} if inserted or updated; {@code false} if validation fails or write error occurs
+     */
+    boolean addProfileAltPermission(Player player, String altUuid, String permName);
+
+    /**
      * Persists a serialized inventory payload for the active alt recorded in {@code identity_session}.
      *
      * @param player  the player whose active alt to persist
