@@ -375,7 +375,7 @@ public class MCEngineIdentityPostgreSQL implements IMCEngineIdentityDB {
     }
 
     @Override
-    public boolean addLimit(Player player, int amount) {
+    public boolean addProfileAltLimit(Player player, int amount) {
         if (conn == null || amount < 0) return false;
         String identityUuid = player.getUniqueId().toString();
         Timestamp now = Timestamp.from(Instant.now());
@@ -404,7 +404,7 @@ public class MCEngineIdentityPostgreSQL implements IMCEngineIdentityDB {
     }
 
     @Override
-    public int getLimit(Player player) {
+    public int getProfileAltLimit(Player player) {
         if (conn == null) return 1;
         String identityUuid = player.getUniqueId().toString();
         try (PreparedStatement ps = conn.prepareStatement(
@@ -462,7 +462,7 @@ public class MCEngineIdentityPostgreSQL implements IMCEngineIdentityDB {
     }
 
     @Override
-    public boolean saveAltInventory(Player player, byte[] payload) {
+    public boolean saveProfileAltInventory(Player player, byte[] payload) {
         if (conn == null) return false;
         String identityUuid = player.getUniqueId().toString();
         try {
@@ -492,7 +492,7 @@ public class MCEngineIdentityPostgreSQL implements IMCEngineIdentityDB {
     }
 
     @Override
-    public byte[] loadAltInventory(Player player) {
+    public byte[] loadProfileAltInventory(Player player) {
         if (conn == null) return null;
         String identityUuid = player.getUniqueId().toString();
         try {

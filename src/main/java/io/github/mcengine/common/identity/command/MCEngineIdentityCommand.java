@@ -68,7 +68,7 @@ public class MCEngineIdentityCommand implements CommandExecutor {
 
             if (op.equals("create")) {
                 // Read limit (for better messaging) and rely on DB to enforce.
-                int limit = api.getLimit(p);
+                int limit = api.getProfileAltLimit(p);
                 String alt = MCEngineIdentityCommon.getApi().createProfileAlt(p);
                 if (alt != null) {
                     sender.sendMessage("Created alt: " + alt);
@@ -222,7 +222,7 @@ public class MCEngineIdentityCommand implements CommandExecutor {
                     sender.sendMessage("Amount must not be negative.");
                     return true;
                 }
-                boolean ok = api.addLimit(target, amount);
+                boolean ok = api.addProfileAltLimit(target, amount);
                 sender.sendMessage(ok ? ("Added " + amount + " to " + target.getName() + "'s identity limit.") : "Failed to update limit.");
                 return true;
             }
@@ -240,7 +240,7 @@ public class MCEngineIdentityCommand implements CommandExecutor {
                         return true;
                     }
                     Player self = (Player) sender;
-                    int limit = api.getLimit(self);
+                    int limit = api.getProfileAltLimit(self);
                     int altCount = api.getProfileCount(self);
                     sender.sendMessage("Your identity count: " + altCount + " (limit " + limit + ")");
                     return true;
@@ -257,7 +257,7 @@ public class MCEngineIdentityCommand implements CommandExecutor {
                         sender.sendMessage("Player must be online.");
                         return true;
                     }
-                    int limit = api.getLimit(target);
+                    int limit = api.getProfileAltLimit(target);
                     int altCount = api.getProfileCount(target);
                     sender.sendMessage(target.getName() + "'s identity count: " + altCount + " (limit " + limit + ")");
                     return true;

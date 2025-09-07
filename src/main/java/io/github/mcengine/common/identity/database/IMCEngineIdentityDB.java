@@ -98,23 +98,23 @@ public interface IMCEngineIdentityDB {
     String getProfileAltUuidByName(org.bukkit.entity.Player player, String altName);
 
     /**
-     * Increases the identity alt limit for the given player by {@code amount}.
+     * Increases the identity's allowed number of alternatives (alt limit) for the given player by {@code amount}.
      * Implementations should upsert the identity row if it does not exist.
      *
-     * @param player the player whose limit to change
+     * @param player the player whose alt limit to change
      * @param amount non-negative increment
      * @return {@code true} if updated/persisted
      */
-    boolean addLimit(Player player, int amount);
+    boolean addProfileAltLimit(Player player, int amount);
 
     /**
      * Returns the configured alt limit for the player's identity. Implementations should
      * upsert an identity row when absent and return the effective limit (default {@code 1}).
      *
-     * @param player the player whose limit to read
-     * @return the current limit (>= 1)
+     * @param player the player whose alt limit to read
+     * @return the current alt limit (>= 1)
      */
-    int getLimit(Player player);
+    int getProfileAltLimit(Player player);
 
     /**
      * Adds (or refreshes) a permission for the given player's alternative.
@@ -136,7 +136,7 @@ public interface IMCEngineIdentityDB {
      * @param payload opaque, serialized inventory bytes
      * @return {@code true} if written
      */
-    boolean saveAltInventory(Player player, byte[] payload);
+    boolean saveProfileAltInventory(Player player, byte[] payload);
 
     /**
      * Loads the serialized inventory payload for the player's currently active alt, if present.
@@ -144,5 +144,5 @@ public interface IMCEngineIdentityDB {
      * @param player the player whose active alt to load
      * @return inventory bytes, or {@code null} when no data is stored
      */
-    byte[] loadAltInventory(Player player);
+    byte[] loadProfileAltInventory(Player player);
 }

@@ -90,14 +90,17 @@ public class MCEngineIdentityCommon {
         return db.getProfileAltUuidByName(player, altName);
     }
 
+    /** Creates a new alternative for the player's identity (DB enforces limit). */
     public String createProfileAlt(Player player) {
         return db.createProfileAlt(player);
     }
 
+    /** Switches the active alternative for the player (session upsert). */
     public boolean changeProfileAlt(Player player, String alt_uuid) {
         return db.changeProfileAlt(player, alt_uuid);
     }
 
+    /** Sets or clears (when {@code alt_name} is {@code null}) a display name for the specified alt. */
     public boolean setProfileAltname(Player player, String altUuid, String alt_name) {
         return db.setProfileAltname(player, altUuid, alt_name);
     }
@@ -136,8 +139,8 @@ public class MCEngineIdentityCommon {
      * @param amount non-negative increment
      * @return {@code true} if updated
      */
-    public boolean addLimit(Player target, int amount) {
-        return db.addLimit(target, amount);
+    public boolean addProfileAltLimit(Player target, int amount) {
+        return db.addProfileAltLimit(target, amount);
     }
 
     /**
@@ -146,8 +149,8 @@ public class MCEngineIdentityCommon {
      * @param player Bukkit player
      * @return the maximum number of alts allowed for this identity
      */
-    public int getLimit(Player player) {
-        return db.getLimit(player);
+    public int getProfileAltLimit(Player player) {
+        return db.getProfileAltLimit(player);
     }
 
     /**
@@ -211,7 +214,7 @@ public class MCEngineIdentityCommon {
     public boolean saveActiveAltInventory(Player player) {
         try {
             byte[] payload = serializeInventory(player.getInventory().getContents());
-            return db.saveAltInventory(player, payload);
+            return db.saveProfileAltInventory(player, payload);
         } catch (Exception e) {
             plugin.getLogger().warning("Failed to save inventory: " + e.getMessage());
             e.printStackTrace();
@@ -226,7 +229,7 @@ public class MCEngineIdentityCommon {
      */
     public boolean loadActiveAltInventory(Player player) {
         try {
-            byte[] payload = db.loadAltInventory(player);
+            byte[] payload = db.loadProfileAltInventory(player);
             if (payload == null) {
                 // No stored inventory for this alt -> start empty
                 player.getInventory().clear();
@@ -260,7 +263,7 @@ public class MCEngineIdentityCommon {
             ioPool.execute(() -> {
                 try {
                     byte[] payload = serializeInventory(snapshot);
-                    db.saveAltInventory(player, payload);
+                    db.saveProfileAltInventory(player, payload);
                 } catch (Exception e) {
                     plugin.getLogger().warning("Failed to async-save inventory: " + e.getMessage());
                     e.printStackTrace();
@@ -278,7 +281,7 @@ public class MCEngineIdentityCommon {
     public void loadActiveAltInventoryAsync(Player player) {
         ioPool.execute(() -> {
             try {
-                byte[] payload = db.loadAltInventory(player);
+                byte[] payload = db.loadProfileAltInventory(player);
                 if (payload == null) {
                     Bukkit.getScheduler().runTask(plugin, () -> {
                         player.getInventory().clear();
