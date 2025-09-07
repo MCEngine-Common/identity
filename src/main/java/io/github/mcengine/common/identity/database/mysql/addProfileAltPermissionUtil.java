@@ -7,11 +7,31 @@ import java.sql.*;
 import java.time.Instant;
 
 /**
- * Adds or refreshes a permission for a specific alt (composite PK prevents duplicates).
+ * Utility for adding or refreshing a permission for a specific alt (MySQL dialect).
+ * <p>
+ * The composite primary key on {@code identity_permission} prevents duplicates; when a duplicate
+ * is detected, the row's {@code identity_permission_updated_at} is refreshed.
  */
 public final class addProfileAltPermissionUtil {
+
+    /** Prevents instantiation of this utility class. */
     private addProfileAltPermissionUtil() {}
 
+    /**
+     * Adds a permission to the specified alt belonging to the given player, or refreshes the timestamp
+     * if the permission already exists.
+     * <ol>
+     *   <li>Validates that {@code altUuid} belongs to the player's identity.</li>
+     *   <li>Performs an upsert into {@code identity_permission}.</li>
+     * </ol>
+     *
+     * @param conn     active MySQL {@link Connection}; must not be {@code null}
+     * @param plugin   Bukkit {@link Plugin} used for logging warnings
+     * @param player   owner {@link Player} of the identity
+     * @param altUuid  alternative UUID that will receive the permission (must belong to player)
+     * @param permName permission name to add/refresh (non-null, non-empty)
+     * @return {@code true} if inserted or updated successfully; {@code false} if validation fails or on SQL error
+     */
     public static boolean invoke(Connection conn, Plugin plugin, Player player, String altUuid, String permName) {
         if (conn == null) return false;
         if (altUuid == null || altUuid.isEmpty() || permName == null || permName.isEmpty()) return false;
@@ -20,6 +40,7 @@ public final class addProfileAltPermissionUtil {
         final Timestamp now = Timestamp.from(Instant.now());
 
         try {
+            // Validate alt belongs to player's identity
             try (PreparedStatement chk = conn.prepareStatement(
                     "SELECT 1 FROM identity_alternative WHERE identity_alternative_uuid=? AND identity_uuid=?")) {
                 chk.setString(1, altUuid);
@@ -27,6 +48,7 @@ public final class addProfileAltPermissionUtil {
                 try (ResultSet rs = chk.executeQuery()) { if (!rs.next()) return false; }
             }
 
+            // Upsert permission (composite PK)
             try (PreparedStatement up = conn.prepareStatement(
                     "INSERT INTO identity_permission (" +
                     "identity_uuid, identity_alternative_uuid, identity_permission_name, " +

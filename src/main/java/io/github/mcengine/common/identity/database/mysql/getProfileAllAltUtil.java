@@ -8,11 +8,24 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Lists all alts for the player's identity (name if set, else UUID), ordered by UUID asc.
+ * Utility for listing all alternatives for a player's identity (MySQL dialect).
+ * <p>
+ * Each entry is the alt's display name if set; otherwise the alt UUID (e.g., {@code {uuid}-N}).
+ * Results are ordered by {@code identity_alternative_uuid} ascending.
  */
 public final class getProfileAllAltUtil {
+
+    /** Prevents instantiation of this utility class. */
     private getProfileAllAltUtil() {}
 
+    /**
+     * Returns all alternatives for the player's identity.
+     *
+     * @param conn   active MySQL {@link Connection}; must not be {@code null}
+     * @param plugin Bukkit {@link Plugin} used for logging warnings
+     * @param player owner {@link Player} of the identity
+     * @return a list of display names or UUIDs (never {@code null}); empty list on error or when none exist
+     */
     public static List<String> invoke(Connection conn, Plugin plugin, Player player) {
         final List<String> out = new ArrayList<>();
         if (conn == null) return out;

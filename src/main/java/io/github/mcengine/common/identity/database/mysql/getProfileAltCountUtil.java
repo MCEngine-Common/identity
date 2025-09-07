@@ -6,11 +6,21 @@ import org.bukkit.plugin.Plugin;
 import java.sql.*;
 
 /**
- * Counts the number of alts for the player's identity.
+ * Utility for counting the number of alts for a player's identity (MySQL dialect).
  */
 public final class getProfileAltCountUtil {
+
+    /** Prevents instantiation of this utility class. */
     private getProfileAltCountUtil() {}
 
+    /**
+     * Counts rows in {@code identity_alternative} for the player's {@code identity_uuid}.
+     *
+     * @param conn   active MySQL {@link Connection}; must not be {@code null}
+     * @param plugin Bukkit {@link Plugin} used for logging warnings
+     * @param player owner {@link Player} of the identity
+     * @return number of alternatives; {@code 0} on error or when none exist
+     */
     public static int invoke(Connection conn, Plugin plugin, Player player) {
         if (conn == null) return 0;
         final String identityUuid = player.getUniqueId().toString();

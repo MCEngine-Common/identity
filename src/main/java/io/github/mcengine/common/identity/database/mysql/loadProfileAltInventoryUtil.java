@@ -6,11 +6,23 @@ import org.bukkit.plugin.Plugin;
 import java.sql.*;
 
 /**
- * Loads serialized inventory bytes for the player's active alt from {@code identity_session}.
+ * Utility for loading serialized inventory bytes for the player's active alt (MySQL dialect).
+ * <p>
+ * The active alt is determined from {@code identity_session}.
  */
 public final class loadProfileAltInventoryUtil {
+
+    /** Prevent instantiation of this utility class. */
     private loadProfileAltInventoryUtil() {}
 
+    /**
+     * Loads the serialized inventory payload for the player's currently active alt, if present.
+     *
+     * @param conn   active MySQL {@link Connection}; if {@code null}, returns {@code null}
+     * @param plugin Bukkit {@link Plugin} for logging warnings
+     * @param player target {@link Player} whose active alt is resolved via {@code identity_session}
+     * @return inventory bytes or {@code null} when not found / not set / SQL error
+     */
     public static byte[] invoke(Connection conn, Plugin plugin, Player player) {
         if (conn == null) return null;
         final String identityUuid = player.getUniqueId().toString();
