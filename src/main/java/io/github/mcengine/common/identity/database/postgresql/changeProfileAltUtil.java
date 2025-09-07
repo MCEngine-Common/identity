@@ -6,13 +6,21 @@ import org.bukkit.plugin.Plugin;
 import java.sql.*;
 
 /**
- * Switches the active session alt for the player.
+ * Utility for switching the active session alt for a player (PostgreSQL dialect).
  */
 public final class changeProfileAltUtil {
+
+    /** Prevents instantiation of this utility class. */
     private changeProfileAltUtil() {}
 
     /**
-     * Verifies the alt belongs to the player, then upserts {@code identity_session}.
+     * Verifies the alt belongs to the player and then upserts {@code identity_session}.
+     *
+     * @param conn    active PostgreSQL {@link Connection}; if {@code null}, returns {@code false}
+     * @param plugin  Bukkit {@link Plugin} used for logging warnings
+     * @param player  owner {@link Player} of the identity
+     * @param altUuid alternative UUID to activate (must belong to {@code player})
+     * @return {@code true} if the session row was inserted/updated; {@code false} on validation failure or SQL error
      */
     public static boolean invoke(Connection conn, Plugin plugin, Player player, String altUuid) {
         if (conn == null || altUuid == null || altUuid.isEmpty()) return false;

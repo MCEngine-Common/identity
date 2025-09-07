@@ -6,11 +6,25 @@ import org.bukkit.plugin.Plugin;
 import java.sql.*;
 
 /**
- * Persists serialized inventory bytes for the player's active alt from {@code identity_session}.
+ * Utility for persisting serialized inventory bytes for the player's active alt (PostgreSQL dialect).
+ * <p>
+ * The active alt is determined from {@code identity_session}; the bytes are written to
+ * {@code identity_alternative.identity_alternative_storage}.
  */
 public final class saveProfileAltInventoryUtil {
+
+    /** Prevents instantiation of this utility class. */
     private saveProfileAltInventoryUtil() {}
 
+    /**
+     * Persists the serialized inventory payload to the active alt for {@code player}.
+     *
+     * @param conn    active PostgreSQL {@link Connection}; if {@code null}, returns {@code false}
+     * @param plugin  Bukkit {@link Plugin} used for logging warnings
+     * @param player  target {@link Player} whose active alt is resolved via {@code identity_session}
+     * @param payload opaque serialized inventory bytes to store
+     * @return {@code true} if the storage column was updated; {@code false} if no active alt, validation fails, or SQL error
+     */
     public static boolean invoke(Connection conn, Plugin plugin, Player player, byte[] payload) {
         if (conn == null || payload == null) return false;
         final String identityUuid = player.getUniqueId().toString();

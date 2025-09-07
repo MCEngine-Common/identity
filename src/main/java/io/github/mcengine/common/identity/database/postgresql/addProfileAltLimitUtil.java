@@ -7,11 +7,28 @@ import java.sql.*;
 import java.time.Instant;
 
 /**
- * Increments the allowed alt limit for the player's identity.
+ * Utility for incrementing the allowed alternative (alt) limit for a player's identity (PostgreSQL dialect).
+ * <p>
+ * Provides a single static {@link #invoke(Connection, Plugin, Player, int)} entrypoint.
  */
 public final class addProfileAltLimitUtil {
+
+    /** Prevents instantiation of this utility class. */
     private addProfileAltLimitUtil() {}
 
+    /**
+     * Increments {@code identity.identity_limit} for the given player's identity by {@code amount}.
+     * <ul>
+     *   <li>Upserts the {@code identity} row with default limit=1 if missing.</li>
+     *   <li>Performs an atomic {@code UPDATE} to add {@code amount} to the limit.</li>
+     * </ul>
+     *
+     * @param conn   active PostgreSQL {@link Connection}; if {@code null}, returns {@code false}
+     * @param plugin Bukkit {@link Plugin} used for logging warnings
+     * @param player owner {@link Player} of the identity
+     * @param amount non-negative increment to add
+     * @return {@code true} if the limit was updated; {@code false} on validation failure or SQL error
+     */
     public static boolean invoke(Connection conn, Plugin plugin, Player player, int amount) {
         if (conn == null || amount < 0) return false;
         final String identityUuid = player.getUniqueId().toString();

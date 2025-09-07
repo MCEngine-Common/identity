@@ -6,12 +6,25 @@ import org.bukkit.plugin.Plugin;
 import java.sql.*;
 
 /**
- * Checks whether a permission entry exists for the given alt.
- * <p>Method name follows the interface: {@code hasProfileAltCount} (permission existence).</p>
+ * Utility for checking whether a permission entry exists for a given alt belonging to a player (PostgreSQL dialect).
+ * <p>
+ * The name mirrors the interface method: {@code hasProfileAltCount}.
  */
 public final class hasProfileAltCountUtil {
+
+    /** Prevents instantiation of this utility class. */
     private hasProfileAltCountUtil() {}
 
+    /**
+     * Verifies {@code altUuid} belongs to {@code player} and checks for an existing permission row.
+     *
+     * @param conn     active PostgreSQL {@link Connection}; if {@code null}, returns {@code false}
+     * @param plugin   Bukkit {@link Plugin} used for logging warnings
+     * @param player   owner {@link Player} of the identity
+     * @param altUuid  alternative UUID to check
+     * @param permName permission name to check
+     * @return {@code true} if a matching permission row exists; {@code false} otherwise (including validation/SQL error)
+     */
     public static boolean invoke(Connection conn, Plugin plugin, Player player, String altUuid, String permName) {
         if (conn == null) return false;
         if (altUuid == null || altUuid.isEmpty() || permName == null || permName.isEmpty()) return false;

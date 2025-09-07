@@ -7,11 +7,31 @@ import java.sql.*;
 import java.time.Instant;
 
 /**
- * Adds or refreshes a permission for a specific alt (composite PK prevents duplicates).
+ * Utility for adding or refreshing a permission for a specific alt (PostgreSQL dialect).
+ * <p>
+ * The composite primary key on {@code identity_permission} prevents duplicates; on conflict,
+ * the row's {@code identity_permission_updated_at} is refreshed.
  */
 public final class addProfileAltPermissionUtil {
+
+    /** Prevents instantiation of this utility class. */
     private addProfileAltPermissionUtil() {}
 
+    /**
+     * Adds a permission to the specified alt belonging to the given player, or refreshes the timestamp
+     * if it already exists.
+     * <ol>
+     *   <li>Validates that {@code altUuid} belongs to the player's identity.</li>
+     *   <li>Performs an upsert into {@code identity_permission}.</li>
+     * </ol>
+     *
+     * @param conn     active PostgreSQL {@link Connection}; if {@code null}, returns {@code false}
+     * @param plugin   Bukkit {@link Plugin} used for logging warnings
+     * @param player   owner {@link Player} of the identity
+     * @param altUuid  alt UUID receiving the permission (must belong to player)
+     * @param permName permission name to add/refresh (non-null, non-empty)
+     * @return {@code true} if inserted or updated; {@code false} on validation failure or SQL error
+     */
     public static boolean invoke(Connection conn, Plugin plugin, Player player, String altUuid, String permName) {
         if (conn == null) return false;
         if (altUuid == null || altUuid.isEmpty() || permName == null || permName.isEmpty()) return false;
