@@ -26,7 +26,8 @@ import java.util.List;
  *   <li><b>/identity limit add &lt;player&gt; &lt;amount&gt;</b> → suggests online player names and common amounts</li>
  *   <li><b>/identity limit get &lt;player&gt;</b> → suggests online player names (only if {@code mcengine.identity.limit.get.players})</li>
  *   <li><b>/identity perm</b> → {@code add} (if {@code mcengine.identity.permission.add})</li>
- *   <li><b>/identity perm add &lt;player&gt; &lt;altUuid&gt; &lt;permission&gt;</b> → suggests online players, then that player's <em>all</em> alt UUIDs</li>
+ *   <li><b>/identity perm add &lt;player&gt; &lt;altUuid&gt; &lt;permission&gt;</b> → suggests online players, then that player’s alts as
+ *       <em>display name if set, otherwise the alt UUID</em></li>
  * </ul>
  * <p>
  * This implementation performs <b>no direct SQL</b>. It resolves alt data via {@link MCEngineIdentityCommon}.
@@ -168,12 +169,13 @@ public class MCEngineIdentityTabCompleter implements TabCompleter {
                     );
                 }
                 if (args.length == 4) {
-                    // Suggest ALL alt UUIDs for the specified player (including ones that currently have display names)
+                    // Show target player's alts using "name if set, otherwise altUuid"
                     Player target = Bukkit.getPlayerExact(args[2]);
                     if (target == null) return Collections.emptyList();
+                    // api.getProfileAllAlt(target) already returns display names where set, else UUIDs
                     return MCEngineIdentityTabCompleterUtil.filterPrefix(
                             args[3],
-                            MCEngineIdentityTabCompleterUtil.altsAllUuids(api, target)
+                            api.getProfileAllAlt(target)
                     );
                 }
                 if (args.length == 5) {
