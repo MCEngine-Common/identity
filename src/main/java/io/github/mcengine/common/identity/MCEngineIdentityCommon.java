@@ -112,8 +112,8 @@ public class MCEngineIdentityCommon {
      * @param player Bukkit player
      * @return total alt count (including the primary {@code {uuid}-0})
      */
-    public int getProfileCount(Player player) {
-        return db.getProfileCount(player);
+    public int getProfileAltCount(Player player) {
+        return db.getProfileAltCount(player);
     }
 
     /**
@@ -178,8 +178,8 @@ public class MCEngineIdentityCommon {
      * @param permName permission name to check
      * @return {@code true} if a matching permission row exists; otherwise {@code false}
      */
-    public boolean getProfileAltPermission(Player player, String altUuid, String permName) {
-        return db.getProfileAltPermission(player, altUuid, permName);
+    public boolean hasProfileAltCount(Player player, String altUuid, String permName) {
+        return db.hasProfileAltCount(player, altUuid, permName);
     }
 
     // -------------------------------------------------

@@ -244,7 +244,7 @@ public class MCEngineIdentityCommand implements CommandExecutor {
                     }
                     Player self = (Player) sender;
                     int limit = api.getProfileAltLimit(self);
-                    int altCount = api.getProfileCount(self);
+                    int altCount = api.getProfileAltCount(self);
                     sender.sendMessage("Your identity count: " + altCount + " (limit " + limit + ")");
                     return true;
                 }
@@ -261,7 +261,7 @@ public class MCEngineIdentityCommand implements CommandExecutor {
                         return true;
                     }
                     int limit = api.getProfileAltLimit(target);
-                    int altCount = api.getProfileCount(target);
+                    int altCount = api.getProfileAltCount(target);
                     sender.sendMessage(target.getName() + "'s identity count: " + altCount + " (limit " + limit + ")");
                     return true;
                 }
@@ -304,7 +304,7 @@ public class MCEngineIdentityCommand implements CommandExecutor {
                 String altUuid = (resolved != null && !resolved.isEmpty()) ? resolved : altToken;
 
                 // Check if permission already exists for this alt
-                boolean exists = MCEngineIdentityCommon.getApi().getProfileAltPermission(p, altUuid, permName);
+                boolean exists = MCEngineIdentityCommon.getApi().hasProfileAltCount(p, altUuid, permName);
                 if (exists) {
                     sender.sendMessage(MSG_PERMISSION_ALREADY_ADDED);
                     return true;

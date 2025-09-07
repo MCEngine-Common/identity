@@ -86,7 +86,7 @@ public interface IMCEngineIdentityDB {
      * @param player Bukkit player
      * @return count of rows in {@code identity_alternative} for the player's {@code identity_uuid}
      */
-    int getProfileCount(org.bukkit.entity.Player player);
+    int getProfileAltCount(org.bukkit.entity.Player player);
 
     /**
      * Resolves an alt UUID from its display name for the given player.
@@ -146,7 +146,7 @@ public interface IMCEngineIdentityDB {
      * @param permName permission name to check
      * @return {@code true} if a matching permission row exists; otherwise {@code false}
      */
-    boolean getProfileAltPermission(Player player, String altUuid, String permName);
+    boolean hasProfileAltCount(Player player, String altUuid, String permName);
 
     /* 
      * Load and save inventory

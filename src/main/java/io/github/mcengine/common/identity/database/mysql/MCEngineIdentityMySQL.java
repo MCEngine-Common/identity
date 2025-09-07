@@ -190,7 +190,7 @@ public class MCEngineIdentityMySQL implements IMCEngineIdentityDB {
     }
 
     @Override
-    public int getProfileCount(Player player) {
+    public int getProfileAltCount(Player player) {
         if (conn == null) return 0;
         String identityUuid = player.getUniqueId().toString();
         try (PreparedStatement ps = conn.prepareStatement(
@@ -200,7 +200,7 @@ public class MCEngineIdentityMySQL implements IMCEngineIdentityDB {
                 if (rs.next()) return rs.getInt(1);
             }
         } catch (SQLException e) {
-            plugin.getLogger().warning("getProfileCount failed: " + e.getMessage());
+            plugin.getLogger().warning("getProfileAltCount failed: " + e.getMessage());
             e.printStackTrace();
         }
         return 0;
@@ -481,7 +481,7 @@ public class MCEngineIdentityMySQL implements IMCEngineIdentityDB {
     }
 
     @Override
-    public boolean getProfileAltPermission(Player player, String altUuid, String permName) {
+    public boolean hasProfileAltCount(Player player, String altUuid, String permName) {
         if (conn == null) return false;
         if (altUuid == null || altUuid.isEmpty() || permName == null || permName.isEmpty()) return false;
 
@@ -508,7 +508,7 @@ public class MCEngineIdentityMySQL implements IMCEngineIdentityDB {
                 }
             }
         } catch (SQLException e) {
-            plugin.getLogger().warning("getProfileAltPermission failed: " + e.getMessage());
+            plugin.getLogger().warning("hasProfileAltCount failed: " + e.getMessage());
             e.printStackTrace();
             return false;
         }
