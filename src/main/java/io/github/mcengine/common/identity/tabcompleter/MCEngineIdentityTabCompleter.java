@@ -26,7 +26,7 @@ import java.util.List;
  *   <li><b>/identity limit add &lt;player&gt; &lt;amount&gt;</b> → suggests online player names and common amounts</li>
  *   <li><b>/identity limit get &lt;player&gt;</b> → suggests online player names (only if {@code mcengine.identity.limit.get.players})</li>
  *   <li><b>/identity perm</b> → {@code add} (if {@code mcengine.identity.permission.add})</li>
- *   <li><b>/identity perm add &lt;player&gt; &lt;altUuid&gt; &lt;permission&gt;</b> → suggests online players, then that player's alt UUIDs</li>
+ *   <li><b>/identity perm add &lt;player&gt; &lt;altUuid&gt; &lt;permission&gt;</b> → suggests online players, then that player's <em>all</em> alt UUIDs</li>
  * </ul>
  * <p>
  * This implementation performs <b>no direct SQL</b>. It resolves alt data via {@link MCEngineIdentityCommon}.
@@ -89,7 +89,6 @@ public class MCEngineIdentityTabCompleter implements TabCompleter {
                 if (args.length == 3) {
                     return MCEngineIdentityTabCompleterUtil.filterPrefix(args[2], List.of("set", "change"));
                 }
-                // /identity alt name set <altUuid> <newName>
                 if ("set".equalsIgnoreCase(args[2])) {
                     if (args.length == 4) {
                         return MCEngineIdentityTabCompleterUtil.filterPrefix(
@@ -97,11 +96,8 @@ public class MCEngineIdentityTabCompleter implements TabCompleter {
                                 MCEngineIdentityTabCompleterUtil.altsWithoutDisplayName(api, player)
                         );
                     }
-                    if (args.length == 5) {
-                        return Collections.emptyList();
-                    }
+                    if (args.length == 5) return Collections.emptyList();
                 }
-                // /identity alt name change <oldName> <newName>
                 if ("change".equalsIgnoreCase(args[2])) {
                     if (args.length == 4) {
                         return MCEngineIdentityTabCompleterUtil.filterPrefix(
@@ -109,9 +105,7 @@ public class MCEngineIdentityTabCompleter implements TabCompleter {
                                 MCEngineIdentityTabCompleterUtil.altsWithDisplayNameOnly(api, player)
                         );
                     }
-                    if (args.length == 5) {
-                        return Collections.emptyList();
-                    }
+                    if (args.length == 5) return Collections.emptyList();
                 }
                 return Collections.emptyList();
             }
@@ -174,12 +168,12 @@ public class MCEngineIdentityTabCompleter implements TabCompleter {
                     );
                 }
                 if (args.length == 4) {
-                    // Suggest target player's alt UUIDs only
+                    // Suggest ALL alt UUIDs for the specified player (including ones that currently have display names)
                     Player target = Bukkit.getPlayerExact(args[2]);
                     if (target == null) return Collections.emptyList();
                     return MCEngineIdentityTabCompleterUtil.filterPrefix(
                             args[3],
-                            MCEngineIdentityTabCompleterUtil.altsWithoutDisplayName(api, target)
+                            MCEngineIdentityTabCompleterUtil.altsAllUuids(api, target)
                     );
                 }
                 if (args.length == 5) {

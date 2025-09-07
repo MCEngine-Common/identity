@@ -84,6 +84,33 @@ public final class MCEngineIdentityTabCompleterUtil {
     }
 
     /**
+     * Returns <em>all</em> alt UUIDs for the given player, converting any display-name alts
+     * to their UUIDs via {@link MCEngineIdentityCommon#getProfileAltUuidByName(Player, String)}.
+     * <p>
+     * This is useful for commands that explicitly require an {@code altUuid} argument but
+     * the underlying API may return a mix of names and UUIDs for suggestions.
+     *
+     * @param api    Identity common API
+     * @param player owner of the alts
+     * @return list of UUID strings for all alts belonging to the player
+     */
+    public static List<String> altsAllUuids(MCEngineIdentityCommon api, Player player) {
+        List<String> all = api.getProfileAllAlt(player);
+        List<String> uuids = new ArrayList<>();
+        for (String s : all) {
+            if (looksLikeAltUuid(s)) {
+                uuids.add(s);
+            } else {
+                String resolved = api.getProfileAltUuidByName(player, s);
+                if (resolved != null && !resolved.isEmpty()) {
+                    uuids.add(resolved);
+                }
+            }
+        }
+        return uuids;
+    }
+
+    /**
      * Heuristic check for an alt UUID string: {@code <uuid-v4>-<number>}.
      *
      * @param s candidate string
