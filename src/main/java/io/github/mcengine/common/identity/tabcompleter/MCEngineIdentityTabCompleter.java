@@ -10,7 +10,6 @@ import org.bukkit.entity.Player;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Locale;
 
 /**
  * Tab completer for the {@code /identity} command.
@@ -27,14 +26,10 @@ import java.util.Locale;
  *   <li><b>/identity limit add &lt;player&gt; &lt;amount&gt;</b> → suggests online player names and common amounts</li>
  *   <li><b>/identity limit get &lt;player&gt;</b> → suggests online player names (only if {@code mcengine.identity.limit.get.players})</li>
  *   <li><b>/identity perm</b> → {@code add} (if {@code mcengine.identity.permission.add})</li>
- *   <li><b>/identity perm add &lt;altUuid|name&gt; &lt;permission&gt;</b> → suggests player's alts for the alt argument</li>
+ *   <li><b>/identity perm add &lt;player&gt; &lt;altUuid&gt; &lt;permission&gt;</b> → suggests online players, then that player's alt UUIDs</li>
  * </ul>
  * <p>
- * This implementation performs <b>no direct SQL</b>. It resolves:
- * <ul>
- *   <li>All alt suggestions via {@link MCEngineIdentityCommon#getProfileAllAlt(Player)} (display name if set, otherwise UUID)</li>
- *   <li>Name → UUID normalization via {@link MCEngineIdentityCommon#getProfileAltUuidByName(Player, String)}</li>
- * </ul>
+ * This implementation performs <b>no direct SQL</b>. It resolves alt data via {@link MCEngineIdentityCommon}.
  */
 public class MCEngineIdentityTabCompleter implements TabCompleter {
 
@@ -96,28 +91,24 @@ public class MCEngineIdentityTabCompleter implements TabCompleter {
                 }
                 // /identity alt name set <altUuid> <newName>
                 if ("set".equalsIgnoreCase(args[2])) {
-                    // argument #3 is <altUuid or name>, suggest only alts that don't have display names yet
                     if (args.length == 4) {
                         return MCEngineIdentityTabCompleterUtil.filterPrefix(
                                 args[3],
                                 MCEngineIdentityTabCompleterUtil.altsWithoutDisplayName(api, player)
                         );
                     }
-                    // argument #4 is <newName> – no suggestions by default
                     if (args.length == 5) {
                         return Collections.emptyList();
                     }
                 }
                 // /identity alt name change <oldName> <newName>
                 if ("change".equalsIgnoreCase(args[2])) {
-                    // First argument is an existing display name
                     if (args.length == 4) {
                         return MCEngineIdentityTabCompleterUtil.filterPrefix(
                                 args[3],
                                 MCEngineIdentityTabCompleterUtil.altsWithDisplayNameOnly(api, player)
                         );
                     }
-                    // Second argument (new name): no suggestions by default
                     if (args.length == 5) {
                         return Collections.emptyList();
                     }
@@ -136,13 +127,10 @@ public class MCEngineIdentityTabCompleter implements TabCompleter {
 
                 boolean canGet = player.hasPermission("mcengine.identity.limit.get")
                         || player.hasPermission("mcengine.identity.limit.get.players");
-                if (canGet) {
-                    subs.add("get"); // real token only
-                }
+                if (canGet) subs.add("get");
                 return MCEngineIdentityTabCompleterUtil.filterPrefix(args[1], subs);
             }
 
-            // /identity limit add <player> <amount>
             if ("add".equalsIgnoreCase(args[1]) && player.hasPermission("mcengine.identity.limit.add")) {
                 if (args.length == 3) {
                     return MCEngineIdentityTabCompleterUtil.filterPrefix(
@@ -155,7 +143,6 @@ public class MCEngineIdentityTabCompleter implements TabCompleter {
                 return Collections.emptyList();
             }
 
-            // /identity limit get [player]
             if ("get".equalsIgnoreCase(args[1])) {
                 if (args.length == 3 && player.hasPermission("mcengine.identity.limit.get.players")) {
                     return MCEngineIdentityTabCompleterUtil.filterPrefix(
@@ -178,12 +165,24 @@ public class MCEngineIdentityTabCompleter implements TabCompleter {
             }
 
             if ("add".equalsIgnoreCase(args[1])) {
-                // /identity perm add <altUuid|name> <permission>
+                // /identity perm add <player> <altUuid> <permission>
                 if (args.length == 3) {
-                    // suggest player's alts (either names or UUIDs)
-                    return MCEngineIdentityTabCompleterUtil.suggestionsForAltToken(api, player, args[2]);
+                    // Suggest online player names
+                    return MCEngineIdentityTabCompleterUtil.filterPrefix(
+                            args[2],
+                            MCEngineIdentityTabCompleterUtil.onlinePlayerNames()
+                    );
                 }
                 if (args.length == 4) {
+                    // Suggest target player's alt UUIDs only
+                    Player target = Bukkit.getPlayerExact(args[2]);
+                    if (target == null) return Collections.emptyList();
+                    return MCEngineIdentityTabCompleterUtil.filterPrefix(
+                            args[3],
+                            MCEngineIdentityTabCompleterUtil.altsWithoutDisplayName(api, target)
+                    );
+                }
+                if (args.length == 5) {
                     // permission suggestions: none by default (free text)
                     return Collections.emptyList();
                 }
