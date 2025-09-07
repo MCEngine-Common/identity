@@ -11,8 +11,21 @@ import java.util.List;
  * Lists all alts for the player's identity (name if set, else UUID), ordered by UUID asc.
  */
 public final class getProfileAllAltUtil {
+
+    /**
+     * Utility class; not instantiable.
+     */
     private getProfileAllAltUtil() {}
 
+    /**
+     * Returns all alternative entries for the player's identity.
+     * Each list element is the display name if present; otherwise the alt UUID.
+     *
+     * @param conn   active SQLite {@link Connection}
+     * @param plugin Bukkit {@link Plugin} for logging
+     * @param player owner {@link Player}
+     * @return ordered list of alternative identifiers or names (never {@code null})
+     */
     public static List<String> invoke(Connection conn, Plugin plugin, Player player) {
         final List<String> out = new ArrayList<>();
         if (conn == null) return out;

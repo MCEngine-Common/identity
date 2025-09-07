@@ -9,8 +9,24 @@ import java.sql.*;
  * Increments the allowed alt limit for the player's identity.
  */
 public final class addProfileAltLimitUtil {
+
+    /**
+     * Utility class; not instantiable.
+     */
     private addProfileAltLimitUtil() {}
 
+    /**
+     * Increases the identity's allowed number of alternatives by {@code amount}.
+     * <p>
+     * The method first upserts the {@code identity} row (default limit = 1) and then
+     * increments {@code identity.identity_limit} for the given {@code identity_uuid}.
+     *
+     * @param conn   active SQLite {@link Connection}
+     * @param plugin Bukkit {@link Plugin} for logging
+     * @param player target {@link Player} whose identity limit is increased
+     * @param amount non-negative increment to apply
+     * @return {@code true} if the limit row was updated; {@code false} otherwise (including validation failures)
+     */
     public static boolean invoke(Connection conn, Plugin plugin, Player player, int amount) {
         if (conn == null || amount < 0) return false;
         final String identityUuid = player.getUniqueId().toString();

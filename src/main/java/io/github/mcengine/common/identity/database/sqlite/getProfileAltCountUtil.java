@@ -9,8 +9,20 @@ import java.sql.*;
  * Counts the number of alts for the player's identity.
  */
 public final class getProfileAltCountUtil {
+
+    /**
+     * Utility class; not instantiable.
+     */
     private getProfileAltCountUtil() {}
 
+    /**
+     * Counts rows in {@code identity_alternative} for the given player's identity.
+     *
+     * @param conn   active SQLite {@link Connection}
+     * @param plugin Bukkit {@link Plugin} for logging
+     * @param player owner {@link Player}
+     * @return number of alternatives; {@code 0} on error
+     */
     public static int invoke(Connection conn, Plugin plugin, Player player) {
         if (conn == null) return 0;
         final String identityUuid = player.getUniqueId().toString();

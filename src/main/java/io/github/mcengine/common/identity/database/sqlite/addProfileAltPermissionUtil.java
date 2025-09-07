@@ -9,8 +9,25 @@ import java.sql.*;
  * Adds or refreshes a permission for a specific alt (composite PK prevents duplicates).
  */
 public final class addProfileAltPermissionUtil {
+
+    /**
+     * Utility class; not instantiable.
+     */
     private addProfileAltPermissionUtil() {}
 
+    /**
+     * Adds a permission for {@code altUuid} that belongs to {@code player}'s identity,
+     * or refreshes its {@code updated_at} if it already exists.
+     * <p>
+     * Validation ensures the alt belongs to the player's identity before inserting/updating.
+     *
+     * @param conn     active SQLite {@link Connection}
+     * @param plugin   Bukkit {@link Plugin} for logging
+     * @param player   owner {@link Player}
+     * @param altUuid  alternative UUID to receive the permission
+     * @param permName permission name (non-null, non-empty)
+     * @return {@code true} if inserted or updated; {@code false} on validation failure or error
+     */
     public static boolean invoke(Connection conn, Plugin plugin, Player player, String altUuid, String permName) {
         if (conn == null) return false;
         if (altUuid == null || altUuid.isEmpty() || permName == null || permName.isEmpty()) return false;

@@ -9,8 +9,20 @@ import java.sql.*;
  * Loads serialized inventory bytes for the player's active alt from {@code identity_session}.
  */
 public final class loadProfileAltInventoryUtil {
+
+    /**
+     * Utility class; not instantiable.
+     */
     private loadProfileAltInventoryUtil() {}
 
+    /**
+     * Reads the active alternative from {@code identity_session} and returns its stored inventory payload.
+     *
+     * @param conn   active SQLite {@link Connection}
+     * @param plugin Bukkit {@link Plugin} for logging
+     * @param player owner {@link Player}
+     * @return serialized inventory bytes, or {@code null} if none present
+     */
     public static byte[] invoke(Connection conn, Plugin plugin, Player player) {
         if (conn == null) return null;
         final String identityUuid = player.getUniqueId().toString();

@@ -9,8 +9,22 @@ import java.sql.*;
  * Persists serialized inventory bytes for the player's active alt from {@code identity_session}.
  */
 public final class saveProfileAltInventoryUtil {
+
+    /**
+     * Utility class; not instantiable.
+     */
     private saveProfileAltInventoryUtil() {}
 
+    /**
+     * Stores {@code payload} into {@code identity_alternative.identity_alternative_storage} for the
+     * player's currently active alternative and updates its timestamp.
+     *
+     * @param conn    active SQLite {@link Connection}
+     * @param plugin  Bukkit {@link Plugin} for logging
+     * @param player  owner {@link Player}
+     * @param payload serialized inventory bytes (non-null)
+     * @return {@code true} if the row was updated; {@code false} if no active alt or on error
+     */
     public static boolean invoke(Connection conn, Plugin plugin, Player player, byte[] payload) {
         if (conn == null || payload == null) return false;
         final String identityUuid = player.getUniqueId().toString();

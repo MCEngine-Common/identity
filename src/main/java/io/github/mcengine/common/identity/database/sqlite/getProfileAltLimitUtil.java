@@ -9,8 +9,20 @@ import java.sql.*;
  * Reads the alt limit for the player's identity (upserts identity if missing).
  */
 public final class getProfileAltLimitUtil {
+
+    /**
+     * Utility class; not instantiable.
+     */
     private getProfileAltLimitUtil() {}
 
+    /**
+     * Ensures an {@code identity} row exists (default limit = 1) and returns the current limit.
+     *
+     * @param conn   active SQLite {@link Connection}
+     * @param plugin Bukkit {@link Plugin} for logging
+     * @param player owner {@link Player}
+     * @return current alt limit (≥ 1); {@code 1} if unavailable
+     */
     public static int invoke(Connection conn, Plugin plugin, Player player) {
         if (conn == null) return 1;
         final String identityUuid = player.getUniqueId().toString();

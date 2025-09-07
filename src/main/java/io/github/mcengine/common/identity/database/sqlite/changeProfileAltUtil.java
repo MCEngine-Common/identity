@@ -9,10 +9,20 @@ import java.sql.*;
  * Switches the active session alt for the player.
  */
 public final class changeProfileAltUtil {
+
+    /**
+     * Utility class; not instantiable.
+     */
     private changeProfileAltUtil() {}
 
     /**
      * Verifies the alt belongs to the player, then upserts {@code identity_session}.
+     *
+     * @param conn    active SQLite {@link Connection}
+     * @param plugin  Bukkit {@link Plugin} for logging
+     * @param player  owner {@link Player}
+     * @param altUuid alternative UUID to activate (must belong to the player's identity)
+     * @return {@code true} if the session row was inserted or updated; {@code false} otherwise
      */
     public static boolean invoke(Connection conn, Plugin plugin, Player player, String altUuid) {
         if (conn == null || altUuid == null || altUuid.isEmpty()) return false;

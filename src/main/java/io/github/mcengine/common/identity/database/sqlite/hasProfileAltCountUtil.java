@@ -10,8 +10,23 @@ import java.sql.*;
  * <p>Method name follows the interface: {@code hasProfileAltCount} (permission existence).</p>
  */
 public final class hasProfileAltCountUtil {
+
+    /**
+     * Utility class; not instantiable.
+     */
     private hasProfileAltCountUtil() {}
 
+    /**
+     * Verifies that {@code altUuid} belongs to the player's identity and checks whether
+     * the permission name exists for that alternative.
+     *
+     * @param conn     active SQLite {@link Connection}
+     * @param plugin   Bukkit {@link Plugin} for logging
+     * @param player   owner {@link Player}
+     * @param altUuid  alternative UUID to check
+     * @param permName permission name to check
+     * @return {@code true} if a matching permission row exists; otherwise {@code false}
+     */
     public static boolean invoke(Connection conn, Plugin plugin, Player player, String altUuid, String permName) {
         if (conn == null) return false;
         if (altUuid == null || altUuid.isEmpty() || permName == null || permName.isEmpty()) return false;

@@ -83,6 +83,15 @@ public class MCEngineIdentitySQLite implements IMCEngineIdentityDB {
         this.conn = tmp;
     }
 
+    /**
+     * Ensures the SQLite schema exists with all required tables, constraints, and indexes.
+     * <p>
+     * This method is idempotent and safe to call multiple times; it relies on
+     * {@code CREATE TABLE IF NOT EXISTS} and {@code CREATE INDEX IF NOT EXISTS}.
+     *
+     * @param c an open {@link Connection} to the SQLite database
+     * @throws SQLException if a schema statement fails to execute
+     */
     private void ensureSchema(Connection c) throws SQLException {
         try (Statement st = c.createStatement()) {
             // identity: identity_uuid is PK
@@ -141,6 +150,11 @@ public class MCEngineIdentitySQLite implements IMCEngineIdentityDB {
         }
     }
 
+    /**
+     * Returns the active JDBC connection for the SQLite identity database.
+     *
+     * @return the shared {@link Connection} instance, or {@code null} if initialization failed
+     */
     @Override
     public Connection getDBConnection() {
         return conn;
@@ -148,75 +162,167 @@ public class MCEngineIdentitySQLite implements IMCEngineIdentityDB {
 
     // ---------- Delegations to per-method util classes ----------
 
+    /**
+     * Ensures the player's identity structures exist by delegating to {@code ensureExistUtil.invoke}.
+     *
+     * @param player Bukkit player
+     * @return {@code true} on success; {@code false} on failure
+     */
     @Override
     public boolean ensureExist(Player player) {
         return ensureExistUtil.invoke(conn, plugin, player);
     }
 
+    /**
+     * Returns the number of alternatives for the player's identity by delegating to {@code getProfileAltCountUtil.invoke}.
+     *
+     * @param player Bukkit player
+     * @return count of alternatives owned by the player's identity
+     */
     @Override
     public int getProfileAltCount(Player player) {
         return getProfileAltCountUtil.invoke(conn, plugin, player);
     }
 
     /**
-     * Creates a new alternative for the player's identity, enforcing {@code identity_limit}.
-     * If current alternative count is already at or above the limit, returns {@code null}.
+     * Creates a new alternative for the player's identity (respecting {@code identity_limit})
+     * by delegating to {@code createProfileAltUtil.invoke}.
+     *
+     * @param player Bukkit player
+     * @return the created alt UUID, or {@code null} when blocked by the limit
      */
     @Override
     public String createProfileAlt(Player player) {
         return createProfileAltUtil.invoke(conn, plugin, player);
     }
 
+    /**
+     * Switches the active session alt by delegating to {@code changeProfileAltUtil.invoke}.
+     *
+     * @param player  Bukkit player
+     * @param altUuid alternative UUID to activate
+     * @return {@code true} if the active alt was changed; otherwise {@code false}
+     */
     @Override
     public boolean changeProfileAlt(Player player, String altUuid) {
         return changeProfileAltUtil.invoke(conn, plugin, player, altUuid);
     }
 
+    /**
+     * Sets (or clears) an alt's display name by delegating to {@code setProfileAltnameUtil.invoke}.
+     *
+     * @param player  Bukkit player
+     * @param altUuid alternative UUID to rename
+     * @param altName new display name (nullable to clear)
+     * @return {@code true} if the row was updated; otherwise {@code false}
+     */
     @Override
     public boolean setProfileAltname(Player player, String altUuid, String altName) {
         return setProfileAltnameUtil.invoke(conn, plugin, player, altUuid, altName);
     }
 
+    /**
+     * Fetches an alt's display name by delegating to {@code getProfileAltNameUtil.invoke}.
+     *
+     * @param player  owner of the identity
+     * @param altUuid alternative UUID
+     * @return display name or {@code null} if unset/not found
+     */
     @Override
     public String getProfileAltName(Player player, String altUuid) {
         return getProfileAltNameUtil.invoke(conn, plugin, player, altUuid);
     }
 
+    /**
+     * Returns all alternatives (names or UUIDs) by delegating to {@code getProfileAllAltUtil.invoke}.
+     *
+     * @param player Bukkit player
+     * @return ordered list of alt identifiers or names
+     */
     @Override
     public List<String> getProfileAllAlt(Player player) {
         return getProfileAllAltUtil.invoke(conn, plugin, player);
     }
 
+    /**
+     * Increments the alt limit for the player's identity by delegating to {@code addProfileAltLimitUtil.invoke}.
+     *
+     * @param player Bukkit player
+     * @param amount non-negative increment to apply
+     * @return {@code true} if updated; otherwise {@code false}
+     */
     @Override
     public boolean addProfileAltLimit(Player player, int amount) {
         return addProfileAltLimitUtil.invoke(conn, plugin, player, amount);
     }
 
+    /**
+     * Retrieves the alt limit for the player's identity by delegating to {@code getProfileAltLimitUtil.invoke}.
+     *
+     * @param player Bukkit player
+     * @return the current alt limit (≥ 1)
+     */
     @Override
     public int getProfileAltLimit(Player player) {
         return getProfileAltLimitUtil.invoke(conn, plugin, player);
     }
 
+    /**
+     * Adds or refreshes a permission for a given alt by delegating to {@code addProfileAltPermissionUtil.invoke}.
+     *
+     * @param player   owner of the identity
+     * @param altUuid  alternative UUID that will receive the permission
+     * @param permName permission name (non-null, non-empty)
+     * @return {@code true} if inserted or updated; {@code false} otherwise
+     */
     @Override
     public boolean addProfileAltPermission(Player player, String altUuid, String permName) {
         return addProfileAltPermissionUtil.invoke(conn, plugin, player, altUuid, permName);
     }
 
+    /**
+     * Checks whether a permission exists for the given alt by delegating to {@code hasProfileAltCountUtil.invoke}.
+     *
+     * @param player   owner of the identity
+     * @param altUuid  alternative UUID to check
+     * @param permName permission name to check
+     * @return {@code true} if a matching permission row exists; otherwise {@code false}
+     */
     @Override
     public boolean hasProfileAltCount(Player player, String altUuid, String permName) {
         return hasProfileAltCountUtil.invoke(conn, plugin, player, altUuid, permName);
     }
 
+    /**
+     * Saves the active alt's inventory payload by delegating to {@code saveProfileAltInventoryUtil.invoke}.
+     *
+     * @param player  the player whose active alt to persist
+     * @param payload serialized inventory bytes
+     * @return {@code true} if written; otherwise {@code false}
+     */
     @Override
     public boolean saveProfileAltInventory(Player player, byte[] payload) {
         return saveProfileAltInventoryUtil.invoke(conn, plugin, player, payload);
     }
 
+    /**
+     * Loads the active alt's inventory payload by delegating to {@code loadProfileAltInventoryUtil.invoke}.
+     *
+     * @param player the player whose active alt to load
+     * @return serialized inventory bytes, or {@code null} if absent
+     */
     @Override
     public byte[] loadProfileAltInventory(Player player) {
         return loadProfileAltInventoryUtil.invoke(conn, plugin, player);
     }
 
+    /**
+     * Resolves an alt UUID from its display name by delegating to {@code getProfileAltUuidByNameUtil.invoke}.
+     *
+     * @param player  owner of the identity
+     * @param altName display name of the alt
+     * @return the alt UUID string if found; otherwise {@code null}
+     */
     @Override
     public String getProfileAltUuidByName(Player player, String altName) {
         return getProfileAltUuidByNameUtil.invoke(conn, plugin, player, altName);
