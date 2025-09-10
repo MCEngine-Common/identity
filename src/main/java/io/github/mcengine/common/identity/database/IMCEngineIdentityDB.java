@@ -2,22 +2,34 @@ package io.github.mcengine.common.identity.database;
 
 import org.bukkit.entity.Player;
 
-import java.sql.Connection;
-
 /**
  * Minimal persistence contract for the Identity module.
  * <p>
- * Exposes a JDBC {@link Connection} and higher-level operations for
- * creating/switching alts, naming, limits, and active-alt inventory I/O.
+ * Exposes higher-level operations for creating/switching alts, naming, limits,
+ * and active-alt inventory I/O. Also provides lightweight SQL helpers for
+ * internal use.
  */
 public interface IMCEngineIdentityDB {
 
     /**
-     * Returns the active JDBC connection for the Identity database.
+     * Executes a SQL statement (DDL/DML) without returning a result value.
+     * Implementations should execute this against their internal shared connection.
      *
-     * @return an open {@link Connection}, or {@code null} if unavailable
+     * @param sql the SQL to execute
+     * @throws RuntimeException if execution fails
      */
-    Connection getDBConnection();
+    void executeQuery(String sql);
+
+    /**
+     * Executes a SQL query expected to return a single scalar value.
+     *
+     * @param sql  the SQL to execute
+     * @param type expected Java type of the single value (e.g., {@code Integer.class}, {@code String.class})
+     * @param <T>  generic return type
+     * @return the value if present; otherwise {@code null}
+     * @throws RuntimeException if execution fails
+     */
+    <T> T getValue(String sql, Class<T> type);
 
     /**
      * Ensures the player's identity structures exist:
