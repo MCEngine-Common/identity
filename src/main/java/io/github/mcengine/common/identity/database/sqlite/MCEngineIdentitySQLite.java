@@ -1,6 +1,7 @@
 package io.github.mcengine.common.identity.database.sqlite;
 
 import io.github.mcengine.common.identity.database.IMCEngineIdentityDB;
+import io.github.mcengine.common.identity.database.sqlite.util.*;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 
@@ -151,13 +152,30 @@ public class MCEngineIdentitySQLite implements IMCEngineIdentityDB {
     }
 
     /**
-     * Returns the active JDBC connection for the SQLite identity database.
-     *
-     * @return the shared {@link Connection} instance, or {@code null} if initialization failed
+     * Executes a SQL statement (DDL/DML) without returning a result value.
      */
     @Override
-    public Connection getDBConnection() {
-        return conn;
+    public void executeQuery(String sql) {
+        try (Statement st = conn.createStatement()) {
+            st.execute(sql);
+        } catch (SQLException e) {
+            throw new RuntimeException("SQLite executeQuery failed: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Executes a SQL query expected to return a single scalar value.
+     */
+    @Override
+    public <T> T getValue(String sql, Class<T> type) {
+        try (Statement st = conn.createStatement();
+             ResultSet rs = st.executeQuery(sql)) {
+            if (!rs.next()) return null;
+            Object v = rs.getObject(1);
+            return (v == null) ? null : type.cast(v);
+        } catch (SQLException e) {
+            throw new RuntimeException("SQLite getValue failed: " + e.getMessage(), e);
+        }
     }
 
     // ---------- Delegations to per-method util classes ----------

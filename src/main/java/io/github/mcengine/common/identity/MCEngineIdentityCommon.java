@@ -80,6 +80,27 @@ public class MCEngineIdentityCommon {
     }
 
     /**
+     * Executes a SQL statement (DDL/DML) without returning a result value.
+     *
+     * @param sql SQL statement to execute
+     */
+    public void executeQuery(String sql) {
+        db.executeQuery(sql);
+    }
+
+    /**
+     * Executes a SQL query expected to return a single scalar value.
+     *
+     * @param sql  the SQL to execute
+     * @param type expected Java type of the single value (e.g., {@code Integer.class})
+     * @param <T>  generic return type
+     * @return the value if present; otherwise {@code null}
+     */
+    public <T> T getValue(String sql, Class<T> type) {
+        return db.getValue(sql, type);
+    }
+
+    /**
      * Resolves an alt UUID by its display name for the given player.
      *
      * @param player  the Bukkit player
