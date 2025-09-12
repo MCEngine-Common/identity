@@ -78,7 +78,7 @@ public final class PermUtil {
         }
 
         // Check if permission already exists for this alt (on the target player)
-        boolean exists = MCEngineIdentityCommon.getApi().hasProfileAltCount(target, altUuid, permName);
+        boolean exists = MCEngineIdentityCommon.getApi().hasAltPermission(target, altUuid, permName);
         if (exists) {
             sender.sendMessage(MSG_PERMISSION_ALREADY_ADDED);
             return true;

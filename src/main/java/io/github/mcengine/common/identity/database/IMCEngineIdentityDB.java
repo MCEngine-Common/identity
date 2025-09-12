@@ -21,6 +21,12 @@ public interface IMCEngineIdentityDB {
     void executeQuery(String sql);
 
     /**
+     * Returns the currently active alternative UUID for this player's identity
+     * (from identity_session.identity_alternative_uuid). May return null if none set.
+     */
+    String getActiveAltUuid(Player player);
+
+    /**
      * Executes a SQL query expected to return a single scalar value.
      *
      * @param sql  the SQL to execute
@@ -150,15 +156,14 @@ public interface IMCEngineIdentityDB {
     boolean addProfileAltPermission(Player player, String altUuid, String permName);
 
     /**
-     * Checks whether a permission entry already exists for the given player's alternative.
-     * Implementations must verify that {@code altUuid} belongs to the player's identity before checking.
+     * Checks whether a permission exists for the given specific alt (not forced to be active).
      *
      * @param player   owner of the identity
-     * @param altUuid  alternative UUID to check (must belong to {@code player})
+     * @param altUuid  alternative UUID to check
      * @param permName permission name to check
-     * @return {@code true} if a matching permission row exists; otherwise {@code false}
+     * @return true if that alt has the permission; false otherwise
      */
-    boolean hasProfileAltCount(Player player, String altUuid, String permName);
+    boolean hasAltPermission(Player player, String altUuid, String permName);
 
     /* 
      * Load and save inventory
@@ -180,4 +185,27 @@ public interface IMCEngineIdentityDB {
      * @return inventory bytes, or {@code null} when no data is stored
      */
     byte[] loadProfileAltInventory(Player player);
+
+    /**
+     * Convenience: checks a permission against the currently active alt (or primary if none).
+     */
+    boolean hasActiveAltCount(Player player, String permName);
+
+    /**
+     * Convenience: adds (or refreshes) a permission for the currently active alt
+     * (or primary if none).
+     */
+    boolean addActiveAltPermission(Player player, String permName);
+
+    /**
+     * Switches the active alt by its display name (helper over getProfileAltUuidByName + changeProfileAlt).
+     *
+     * @return true if switched, false otherwise
+     */
+    boolean changeProfileAltByName(Player player, String altName);
+
+    /**
+     * Validates ownership: returns true if the given altUuid belongs to this player's identity.
+     */
+    boolean isPlayersAlt(Player player, String altUuid);
 }

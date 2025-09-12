@@ -191,6 +191,11 @@ public class MCEngineIdentitySQLite implements IMCEngineIdentityDB {
         return ensureExistUtil.invoke(conn, plugin, player);
     }
 
+    @Override
+    public String getActiveAltUuid(Player player) {
+        return getActiveAltUuidUtil.invoke(conn, plugin, player);
+    }
+
     /**
      * Returns the number of alternatives for the player's identity by delegating to {@code getProfileAltCountUtil.invoke}.
      *
@@ -262,6 +267,39 @@ public class MCEngineIdentitySQLite implements IMCEngineIdentityDB {
         return getProfileAllAltUtil.invoke(conn, plugin, player);
     }
 
+    @Override
+    public boolean isPlayersAlt(Player player, String altUuid) {
+        return isPlayersAltUtil.invoke(conn, plugin, player, altUuid);
+    }
+
+    @Override
+    public boolean changeProfileAltByName(Player player, String altName) {
+        return changeProfileAltByNameUtil.invoke(conn, plugin, player, altName);
+    }
+
+    @Override
+    public boolean addActiveAltPermission(Player player, String permName) {
+        return addActiveAltPermissionUtil.invoke(
+            conn,
+            plugin,
+            player,
+            permName,
+            getActiveAltUuid(player)
+        );
+    }
+
+    @Override
+    public boolean hasActiveAltCount(Player player, String permName) {
+        return hasActiveAltCountUtil.invoke(
+            conn,
+            plugin,
+            player,
+            permName,
+            getActiveAltUuid(player),
+        player.getUniqueId().toString() + "-0"
+        );
+    }
+
     /**
      * Increments the alt limit for the player's identity by delegating to {@code addProfileAltLimitUtil.invoke}.
      *
@@ -299,7 +337,7 @@ public class MCEngineIdentitySQLite implements IMCEngineIdentityDB {
     }
 
     /**
-     * Checks whether a permission exists for the given alt by delegating to {@code hasProfileAltCountUtil.invoke}.
+     * Checks whether a permission exists for the given alt by delegating to {@code hasAltPermissionUtil.invoke}.
      *
      * @param player   owner of the identity
      * @param altUuid  alternative UUID to check
@@ -307,8 +345,8 @@ public class MCEngineIdentitySQLite implements IMCEngineIdentityDB {
      * @return {@code true} if a matching permission row exists; otherwise {@code false}
      */
     @Override
-    public boolean hasProfileAltCount(Player player, String altUuid, String permName) {
-        return hasProfileAltCountUtil.invoke(conn, plugin, player, altUuid, permName);
+    public boolean hasAltPermission(Player player, String altUuid, String permName) {
+        return hasAltPermissionUtil.invoke(conn, plugin, player, altUuid, permName);
     }
 
     /**
