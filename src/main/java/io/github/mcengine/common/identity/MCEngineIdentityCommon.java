@@ -202,6 +202,26 @@ public class MCEngineIdentityCommon {
         return db.addProfileAltPermission(player, altUuid, permName);
     }
 
+    /** Convenience: checks a permission for the active alt (or primary if none). */
+    public boolean hasActiveAltCount(Player player, String permName) {
+        return db.hasActiveAltCount(player, permName);
+    }
+
+    /** Convenience: adds a permission for the active alt (or primary if none). */
+    public boolean addActiveAltPermission(Player player, String permName) {
+        return db.addActiveAltPermission(player, permName);
+    }
+
+    /** Switches active alt by its display name. */
+    public boolean changeProfileAltByName(Player player, String altName) {
+        return db.changeProfileAltByName(player, altName);
+    }
+
+    /** Validates if a given altUuid belongs to this player. */
+    public boolean isPlayersAlt(Player player, String altUuid) {
+        return db.isPlayersAlt(player, altUuid);
+    }
+
     /**
      * Checks whether the specified permission has already been added for the given alt.
      *
@@ -210,8 +230,8 @@ public class MCEngineIdentityCommon {
      * @param permName permission name to check
      * @return {@code true} if a matching permission row exists; otherwise {@code false}
      */
-    public boolean hasProfileAltCount(Player player, String altUuid, String permName) {
-        return db.hasProfileAltCount(player, altUuid, permName);
+    public boolean hasAltPermission(Player player, String altUuid, String permName) {
+        return db.hasAltPermission(player, altUuid, permName);
     }
 
     // -------------------------------------------------

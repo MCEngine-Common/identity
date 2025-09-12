@@ -269,6 +269,39 @@ public class MCEngineIdentityPostgreSQL implements IMCEngineIdentityDB {
         return getProfileAllAltUtil.invoke(conn, plugin, player);
     }
 
+    @Override
+    public boolean isPlayersAlt(Player player, String altUuid) {
+        return isPlayersAltUtil.invoke(conn, plugin, player, altUuid);
+    }
+
+    @Override
+    public boolean changeProfileAltByName(Player player, String altName) {
+        return changeProfileAltByNameUtil.invoke(conn, plugin, player, altName);
+    }
+
+    @Override
+    public boolean addActiveAltPermission(Player player, String permName) {
+        return addActiveAltPermissionUtil.invoke(
+            conn,
+            plugin,
+            player,
+            permName,
+            getActiveAltUuid(player)
+        );
+    }
+
+    @Override
+    public boolean hasActiveAltCount(Player player, String permName) {
+        return hasActiveAltCountUtil.invoke(
+            conn,
+            plugin,
+            player,
+            permName,
+            getActiveAltUuid(player),
+        player.getUniqueId().toString() + "-0"
+        );
+    }
+
     /**
      * Increases the identity's allowed number of alternatives by {@code amount}.
      * Delegates to {@code addProfileAltLimitUtil.invoke(...)}.
@@ -310,7 +343,7 @@ public class MCEngineIdentityPostgreSQL implements IMCEngineIdentityDB {
 
     /**
      * Checks whether a permission entry already exists for the given player's alternative.
-     * Delegates to {@code hasProfileAltCountUtil.invoke(...)}.
+     * Delegates to {@code hasAltPermissionUtil.invoke(...)}.
      *
      * @param player   owner {@link Player} of the identity
      * @param altUuid  alternative UUID to check
@@ -318,8 +351,8 @@ public class MCEngineIdentityPostgreSQL implements IMCEngineIdentityDB {
      * @return {@code true} if a matching permission row exists; otherwise {@code false}
      */
     @Override
-    public boolean hasProfileAltCount(Player player, String altUuid, String permName) {
-        return hasProfileAltCountUtil.invoke(conn, plugin, player, altUuid, permName);
+    public boolean hasAltPermission(Player player, String altUuid, String permName) {
+        return hasAltPermissionUtil.invoke(conn, plugin, player, altUuid, permName);
     }
 
     /**

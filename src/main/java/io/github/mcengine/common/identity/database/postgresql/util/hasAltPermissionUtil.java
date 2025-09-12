@@ -8,12 +8,12 @@ import java.sql.*;
 /**
  * Utility for checking whether a permission entry exists for a given alt belonging to a player (PostgreSQL dialect).
  * <p>
- * The name mirrors the interface method: {@code hasProfileAltCount}.
+ * The name mirrors the interface method: {@code hasAltPermission}.
  */
-public final class hasProfileAltCountUtil {
+public final class hasAltPermissionUtil {
 
     /** Prevents instantiation of this utility class. */
-    private hasProfileAltCountUtil() {}
+    private hasAltPermissionUtil() {}
 
     /**
      * Verifies {@code altUuid} belongs to {@code player} and checks for an existing permission row.
@@ -50,7 +50,7 @@ public final class hasProfileAltCountUtil {
                 try (ResultSet rs = ps.executeQuery()) { return rs.next(); }
             }
         } catch (SQLException e) {
-            plugin.getLogger().warning("hasProfileAltCountUtil (pg) failed: " + e.getMessage());
+            plugin.getLogger().warning("hasAltPermissionUtil (pg) failed: " + e.getMessage());
             e.printStackTrace();
             return false;
         }
