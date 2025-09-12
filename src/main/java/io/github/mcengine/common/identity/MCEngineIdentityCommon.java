@@ -101,6 +101,17 @@ public class MCEngineIdentityCommon {
     }
 
     /**
+     * Returns the currently active alternative UUID for this player's identity
+     * (from identity_session.identity_alternative_uuid). May return null if none set.
+     *
+     * @param player Bukkit player
+     * @return active alt UUID or null
+     */
+    public String getActiveAltUuid(Player player) {
+        return db.getActiveAltUuid(player);
+    }
+
+    /**
      * Resolves an alt UUID by its display name for the given player.
      *
      * @param player  the Bukkit player

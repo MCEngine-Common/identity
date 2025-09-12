@@ -21,6 +21,12 @@ public interface IMCEngineIdentityDB {
     void executeQuery(String sql);
 
     /**
+     * Returns the currently active alternative UUID for this player's identity
+     * (from identity_session.identity_alternative_uuid). May return null if none set.
+     */
+    String getActiveAltUuid(Player player);
+
+    /**
      * Executes a SQL query expected to return a single scalar value.
      *
      * @param sql  the SQL to execute

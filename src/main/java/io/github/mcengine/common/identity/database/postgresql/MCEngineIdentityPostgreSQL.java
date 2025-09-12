@@ -173,6 +173,11 @@ public class MCEngineIdentityPostgreSQL implements IMCEngineIdentityDB {
         return ensureExistUtil.invoke(conn, plugin, player);
     }
 
+    @Override
+    public String getActiveAltUuid(Player player) {
+        return getActiveAltUuidUtil.invoke(conn, plugin, player);
+    }
+
     /**
      * Returns the number of alternatives owned by the player's identity (including the primary).
      * Delegates to {@code getProfileAltCountUtil.invoke(...)}.

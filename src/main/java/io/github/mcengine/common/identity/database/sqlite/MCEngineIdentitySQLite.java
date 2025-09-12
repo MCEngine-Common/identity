@@ -191,6 +191,11 @@ public class MCEngineIdentitySQLite implements IMCEngineIdentityDB {
         return ensureExistUtil.invoke(conn, plugin, player);
     }
 
+    @Override
+    public String getActiveAltUuid(Player player) {
+        return getActiveAltUuidUtil.invoke(conn, plugin, player);
+    }
+
     /**
      * Returns the number of alternatives for the player's identity by delegating to {@code getProfileAltCountUtil.invoke}.
      *
