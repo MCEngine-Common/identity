@@ -10,7 +10,7 @@ import org.bukkit.entity.Player;
  * <p>
  * This class centralizes the logic for:
  * <ul>
- *     <li>{@code perm add &lt;player&gt; &lt;altUuid&gt; &lt;permission&gt;}</li>
+ *     <li>{@code perm add &lt;player&gt; &lt;altUuid|name&gt; &lt;permission&gt;}</li>
  * </ul>
  * No direct SQL is performed here; all calls are delegated to {@link MCEngineIdentityCommon}.
  */
@@ -52,23 +52,23 @@ public final class PermUtil {
         }
 
         if (args.length < 2) {
-            sender.sendMessage("/identity perm add <player> <altUuid> <permission>");
+            sender.sendMessage("/identity perm add <player> <altUuid|name> <permission>");
             return true;
         }
 
         String op = args[1].toLowerCase();
         if (!"add".equals(op)) {
-            sender.sendMessage("/identity perm add <player> <altUuid> <permission>");
+            sender.sendMessage("/identity perm add <player> <altUuid|name> <permission>");
             return true;
         }
 
         if (args.length < 5) {
-            sender.sendMessage("Usage: /identity perm add <player> <altUuid> <permission>");
+            sender.sendMessage("Usage: /identity perm add <player> <altUuid|name> <permission>");
             return true;
         }
 
         String playerName = args[2];
-        String altUuid    = args[3];
+        String altArg     = args[3];
         String permName   = args[4];
 
         Player target = Bukkit.getPlayerExact(playerName);
@@ -77,16 +77,32 @@ public final class PermUtil {
             return true;
         }
 
-        // Check if permission already exists for this alt (on the target player)
-        boolean exists = MCEngineIdentityCommon.getApi().hasAltPermission(target, altUuid, permName);
+        // Resolve altArg: it could be a UUID or a display name
+        String resolvedAltUuid = altArg;
+        if (!altArg.contains("-")) { // treat as display name
+            resolvedAltUuid = MCEngineIdentityCommon.getApi().getProfileAltUuidByName(target, altArg);
+            if (resolvedAltUuid == null) {
+                sender.sendMessage("Alt name not found for that player.");
+                return true;
+            }
+        }
+
+        // Validate that the alt belongs to this player
+        if (!MCEngineIdentityCommon.getApi().isPlayersAlt(target, resolvedAltUuid)) {
+            sender.sendMessage("That alt does not belong to " + target.getName() + ".");
+            return true;
+        }
+
+        // Check if permission already exists
+        boolean exists = MCEngineIdentityCommon.getApi().hasAltPermission(target, resolvedAltUuid, permName);
         if (exists) {
             sender.sendMessage(MSG_PERMISSION_ALREADY_ADDED);
             return true;
         }
 
-        boolean ok = MCEngineIdentityCommon.getApi().addProfileAltPermission(target, altUuid, permName);
+        boolean ok = MCEngineIdentityCommon.getApi().addProfileAltPermission(target, resolvedAltUuid, permName);
         sender.sendMessage(ok
-                ? ("Added permission '" + permName + "' to " + target.getName() + " alt '" + altUuid + "'.")
+                ? ("Added permission '" + permName + "' to " + target.getName() + " alt '" + resolvedAltUuid + "'.")
                 : "Failed to add permission (invalid alt or database error).");
         return true;
     }

@@ -42,7 +42,7 @@ public class MCEngineIdentityCommand implements CommandExecutor {
         if (!command.getName().equalsIgnoreCase("identity")) return false;
 
         if (args.length == 0) {
-            sender.sendMessage("/identity alt create | alt switch <altUuid|name> | alt name set <altUuid> <newName> | alt name change <oldName> <newName> | limit add <player> <amount> | limit get [player] | perm add <altUuid|name> <permission>");
+            sender.sendMessage("/identity alt create | alt switch <altUuid|name> | alt name set <altUuid> <newName> | alt name change <oldName> <newName> | limit add <player> <amount> | limit get [player] | perm add <player> <altUuid|name> <permission>");
             return true;
         }
 
@@ -58,7 +58,7 @@ public class MCEngineIdentityCommand implements CommandExecutor {
                 return PermUtil.handlePerm(api, sender, args);
 
             default:
-                sender.sendMessage("/identity alt create | alt switch <altUuid|name> | alt name set <altUuid> <newName> | alt name change <oldName> <newName> | limit add <player> <amount> | limit get [player] | perm add <altUuid|name> <permission>");
+                sender.sendMessage("/identity alt create | alt switch <altUuid|name> | alt name set <altUuid> <newName> | alt name change <oldName> <newName> | limit add <player> <amount> | limit get [player] | perm add <player> <altUuid|name> <permission>");
                 return true;
         }
     }
