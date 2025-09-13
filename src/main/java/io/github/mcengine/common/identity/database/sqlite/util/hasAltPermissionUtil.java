@@ -42,13 +42,12 @@ public final class hasAltPermissionUtil {
                 try (ResultSet rs = chk.executeQuery()) { if (!rs.next()) return false; }
             }
 
-            // Existence check
+            // Existence check (permission scoped to alternative only)
             try (PreparedStatement ps = conn.prepareStatement(
                     "SELECT 1 FROM identity_permission " +
-                    "WHERE identity_uuid=? AND identity_alternative_uuid=? AND identity_permission_name=? LIMIT 1")) {
-                ps.setString(1, identityUuid);
-                ps.setString(2, altUuid);
-                ps.setString(3, permName);
+                    "WHERE identity_alternative_uuid=? AND identity_permission_name=? LIMIT 1")) {
+                ps.setString(1, altUuid);
+                ps.setString(2, permName);
                 try (ResultSet rs = ps.executeQuery()) { return rs.next(); }
             }
         } catch (SQLException e) {
