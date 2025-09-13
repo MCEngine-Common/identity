@@ -63,75 +63,12 @@ public class MCEngineIdentityPostgreSQL implements IMCEngineIdentityDB {
         Connection tmp = null;
         try {
             tmp = DriverManager.getConnection(jdbcUrl, user, pass);
-            ensureSchema(tmp);
+            ensureSchemaUtil.invoke(tmp, plugin);
         } catch (SQLException e) {
             plugin.getLogger().warning("Failed to connect to PostgreSQL: " + e.getMessage());
             e.printStackTrace();
         }
         this.conn = tmp;
-    }
-
-    /**
-     * Ensures the required schema objects exist (idempotent DDL).
-     *
-     * @param c open {@link Connection} to the PostgreSQL database
-     * @throws SQLException if any DDL statement fails
-     */
-    private void ensureSchema(Connection c) throws SQLException {
-        try (Statement st = c.createStatement()) {
-            // identity: identity_uuid is PK; timestamps default to now()
-            st.executeUpdate(
-                "CREATE TABLE IF NOT EXISTS identity (" +
-                "  identity_uuid VARCHAR(36) PRIMARY KEY," +
-                "  identity_limit INT NOT NULL DEFAULT 1," +
-                "  identity_created_at TIMESTAMP NOT NULL DEFAULT NOW()," +
-                "  identity_updated_at TIMESTAMP NOT NULL DEFAULT NOW()" +
-                ")"
-            );
-
-            // identity_alternative: PK on alt uuid, FK to identity, unique name per identity (NULLs allowed in PG)
-            st.executeUpdate(
-                "CREATE TABLE IF NOT EXISTS identity_alternative (" +
-                "  identity_alternative_uuid VARCHAR(64) PRIMARY KEY," +
-                "  identity_uuid VARCHAR(36) NOT NULL," +
-                "  identity_alternative_name VARCHAR(64) NULL," +
-                "  identity_alternative_storage BYTEA NULL," +
-                "  identity_alternative_created_at TIMESTAMP NOT NULL DEFAULT NOW()," +
-                "  identity_alternative_updated_at TIMESTAMP NOT NULL DEFAULT NOW()," +
-                "  CONSTRAINT fk_alt_identity FOREIGN KEY (identity_uuid) REFERENCES identity(identity_uuid) ON DELETE CASCADE" +
-                ")"
-            );
-            st.executeUpdate("CREATE UNIQUE INDEX IF NOT EXISTS uniq_identity_name ON identity_alternative(identity_uuid, identity_alternative_name)");
-            st.executeUpdate("CREATE INDEX IF NOT EXISTS idx_alt_identity ON identity_alternative(identity_uuid)");
-            st.executeUpdate("CREATE INDEX IF NOT EXISTS idx_alt_name ON identity_alternative(identity_alternative_name)");
-
-            // identity_session: exactly one row per identity
-            st.executeUpdate(
-                "CREATE TABLE IF NOT EXISTS identity_session (" +
-                "  identity_uuid VARCHAR(36) PRIMARY KEY," +
-                "  identity_alternative_uuid VARCHAR(64) NULL," +
-                "  CONSTRAINT fk_session_identity FOREIGN KEY (identity_uuid) REFERENCES identity(identity_uuid) ON DELETE CASCADE," +
-                "  CONSTRAINT fk_session_alt FOREIGN KEY (identity_alternative_uuid) REFERENCES identity_alternative(identity_alternative_uuid) ON DELETE SET NULL" +
-                ")"
-            );
-
-            // identity_permission: composite PK to prevent duplicates per (identity_uuid, identity_alternative_uuid, name)
-            st.executeUpdate(
-                "CREATE TABLE IF NOT EXISTS identity_permission (" +
-                "  identity_uuid VARCHAR(36) NOT NULL," +
-                "  identity_alternative_uuid VARCHAR(64) NOT NULL," +
-                "  identity_permission_name VARCHAR(64) NOT NULL," +
-                "  identity_permission_created_at TIMESTAMP NOT NULL DEFAULT NOW()," +
-                "  identity_permission_updated_at TIMESTAMP NOT NULL DEFAULT NOW()," +
-                "  CONSTRAINT fk_perm_identity FOREIGN KEY (identity_uuid) REFERENCES identity(identity_uuid) ON DELETE CASCADE," +
-                "  CONSTRAINT fk_perm_alt FOREIGN KEY (identity_alternative_uuid) REFERENCES identity_alternative(identity_alternative_uuid) ON DELETE CASCADE," +
-                "  PRIMARY KEY (identity_uuid, identity_alternative_uuid, identity_permission_name)" +
-                ")"
-            );
-            st.executeUpdate("CREATE INDEX IF NOT EXISTS idx_perm_identity ON identity_permission(identity_uuid)");
-            st.executeUpdate("CREATE INDEX IF NOT EXISTS idx_perm_alt ON identity_permission(identity_alternative_uuid)");
-            st.executeUpdate("CREATE INDEX IF NOT EXISTS idx_perm_name ON identity_permission(identity_permission_name)");
-        }
     }
 
     /**
