@@ -100,14 +100,15 @@ public final class PermUtil {
             return true;
         }
 
-        // Permissions are scoped only to the alternative (identity_permission: PK (identity_alternative_uuid, name))
-        boolean exists = api.hasAltPermission(resolvedAltUuid, perm);
+        // Use current API signatures: hasAltPermission(Player, altUuid, perm)
+        boolean exists = api.hasAltPermission(target, resolvedAltUuid, perm);
         if (exists) {
             sender.sendMessage(MSG_PERMISSION_ALREADY_ADDED);
             return true;
         }
 
-        boolean ok = api.addAltPermission(resolvedAltUuid, perm);
+        // Use current API signature: addProfileAltPermission(Player, altUuid, perm)
+        boolean ok = api.addProfileAltPermission(target, resolvedAltUuid, perm);
         sender.sendMessage(ok
                 ? ("Added permission '" + perm + "' to " + target.getName() + " alt '" + resolvedAltUuid + "'.")
                 : "Failed to add permission (invalid alt or database error).");
