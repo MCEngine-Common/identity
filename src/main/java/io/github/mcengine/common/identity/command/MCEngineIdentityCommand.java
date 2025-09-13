@@ -1,9 +1,7 @@
 package io.github.mcengine.common.identity.command;
 
 import io.github.mcengine.common.identity.MCEngineIdentityCommon;
-import io.github.mcengine.common.identity.command.util.AltUtil;
-import io.github.mcengine.common.identity.command.util.LimitUtil;
-import io.github.mcengine.common.identity.command.util.PermUtil;
+import io.github.mcengine.common.identity.command.util.*;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -56,6 +54,9 @@ public class MCEngineIdentityCommand implements CommandExecutor {
 
             case "perm":
                 return PermUtil.handlePerm(api, sender, args);
+
+            case "item":
+                return ItemUtil.handleItem(api, sender, args);
 
             default:
                 sender.sendMessage("/identity alt create | alt switch <altUuid|name> | alt name set <altUuid> <newName> | alt name change <oldName> <newName> | limit add <player> <amount> | limit get [player] | perm add <player> <altUuid|name> <permission>");
