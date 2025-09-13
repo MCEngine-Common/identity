@@ -3,66 +3,44 @@ package io.github.mcengine.common.identity.database.postgresql.util;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 
-import java.sql.*;
-import java.time.Instant;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 
 /**
- * Utility for adding or refreshing a permission for a specific alt (PostgreSQL dialect).
+ * Utility for adding or refreshing a permission for an alternative (PostgreSQL dialect).
  * <p>
- * The composite primary key on {@code identity_permission} prevents duplicates; on conflict,
- * the row's {@code identity_permission_updated_at} is refreshed.
+ * Table: {@code identity_permission}
+ * Columns: {@code identity_alternative_uuid, identity_permission_name, created_at, updated_at}
  */
 public final class addProfileAltPermissionUtil {
 
-    /** Prevents instantiation of this utility class. */
     private addProfileAltPermissionUtil() {}
 
     /**
-     * Adds a permission to the specified alt belonging to the given player, or refreshes the timestamp
-     * if it already exists.
-     * <ol>
-     *   <li>Validates that {@code altUuid} belongs to the player's identity.</li>
-     *   <li>Performs an upsert into {@code identity_permission}.</li>
-     * </ol>
+     * Adds or refreshes a permission row for the given alt.
      *
-     * @param conn     active PostgreSQL {@link Connection}; if {@code null}, returns {@code false}
-     * @param plugin   Bukkit {@link Plugin} used for logging warnings
-     * @param player   owner {@link Player} of the identity
-     * @param altUuid  alt UUID receiving the permission (must belong to player)
-     * @param permName permission name to add/refresh (non-null, non-empty)
-     * @return {@code true} if inserted or updated; {@code false} on validation failure or SQL error
+     * @param conn    PostgreSQL connection
+     * @param plugin  Bukkit plugin for logging
+     * @param player  owner of the alt (not used directly in INSERT)
+     * @param altUuid alternative UUID to attach the permission to
+     * @param permName permission node
+     * @return true if inserted/updated, false otherwise
      */
     public static boolean invoke(Connection conn, Plugin plugin, Player player, String altUuid, String permName) {
         if (conn == null) return false;
-        if (altUuid == null || altUuid.isEmpty() || permName == null || permName.isEmpty()) return false;
+        if (altUuid == null || altUuid.isEmpty()) return false;
+        if (permName == null || permName.isEmpty()) return false;
 
-        final String identityUuid = player.getUniqueId().toString();
-        final Timestamp now = Timestamp.from(Instant.now());
-
-        try {
-            // Validate alt belongs to player's identity
-            try (PreparedStatement chk = conn.prepareStatement(
-                    "SELECT 1 FROM identity_alternative WHERE identity_alternative_uuid=? AND identity_uuid=?")) {
-                chk.setString(1, altUuid);
-                chk.setString(2, identityUuid);
-                try (ResultSet rs = chk.executeQuery()) { if (!rs.next()) return false; }
-            }
-
-            // Upsert permission (composite PK)
-            try (PreparedStatement up = conn.prepareStatement(
-                    "INSERT INTO identity_permission (" +
-                    "identity_uuid, identity_alternative_uuid, identity_permission_name, " +
-                    "identity_permission_created_at, identity_permission_updated_at) " +
-                    "VALUES (?,?,?,?,?) " +
-                    "ON CONFLICT (identity_uuid, identity_alternative_uuid, identity_permission_name) " +
-                    "DO UPDATE SET identity_permission_updated_at = EXCLUDED.identity_permission_updated_at")) {
-                up.setString(1, identityUuid);
-                up.setString(2, altUuid);
-                up.setString(3, permName);
-                up.setTimestamp(4, now);
-                up.setTimestamp(5, now);
-                return up.executeUpdate() > 0;
-            }
+        try (PreparedStatement ps = conn.prepareStatement(
+                "INSERT INTO identity_permission (" +
+                        "identity_alternative_uuid, identity_permission_name, created_at, updated_at" +
+                        ") VALUES (?, ?, NOW(), NOW()) " +
+                        "ON CONFLICT (identity_alternative_uuid, identity_permission_name) " +
+                        "DO UPDATE SET updated_at=EXCLUDED.updated_at")) {
+            ps.setString(1, altUuid);
+            ps.setString(2, permName);
+            return ps.executeUpdate() > 0;
         } catch (SQLException e) {
             plugin.getLogger().warning("addProfileAltPermissionUtil (pg) failed: " + e.getMessage());
             e.printStackTrace();
