@@ -73,12 +73,12 @@ public final class PermUtil {
         String altArgRaw  = args[3];
         String permName   = args[4];
 
-        if (permName.isEmpty()) {
+        if (permName == null || permName.trim().isEmpty()) {
             sender.sendMessage(USAGE_ADD);
             return true;
         }
 
-        // Normalize inputs a bit
+        // Normalize inputs
         String altArg = altArgRaw.trim();
         String perm   = permName.trim();
 
@@ -88,21 +88,19 @@ public final class PermUtil {
             return true;
         }
 
-        // Resolve altArg: try by display name first (new schema enforces per-identity uniqueness when non-null),
-        // then fall back to treating it as an explicit alternative UUID token (e.g., {uuid}-0).
+        // Resolve alt by display name first (unique per identity when non-null), then fallback to raw alt UUID/key
         String resolvedAltUuid = api.getProfileAltUuidByName(target, altArg);
         if (resolvedAltUuid == null) {
-            // Fallback: assume user passed an alternative UUID/string key directly
             resolvedAltUuid = altArg;
         }
 
-        // Validate that the alt belongs to this player (composite FK in session enforces this at DB, but we also check here)
+        // Validate that the alt belongs to this player
         if (!api.isPlayersAlt(target, resolvedAltUuid)) {
             sender.sendMessage("That alt does not belong to " + target.getName() + ".");
             return true;
         }
 
-        // Permissions are now scoped purely to the alternative (identity_permission: PK (identity_alternative_uuid, name))
+        // Permissions are scoped only to the alternative (identity_permission: PK (identity_alternative_uuid, name))
         boolean exists = api.hasAltPermission(resolvedAltUuid, perm);
         if (exists) {
             sender.sendMessage(MSG_PERMISSION_ALREADY_ADDED);
