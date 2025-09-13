@@ -191,7 +191,7 @@ public class MCEngineIdentityCommon {
      * This delegates to the configured {@link IMCEngineIdentityDB} implementation, which
      * validates that the provided {@code altUuid} belongs to the player's identity and then
      * upserts a row into {@code identity_permission} keyed by
-     * {@code (identity_uuid, identity_alternative_uuid, identity_permission_name)}.
+     * {@code (identity_alternative_uuid, identity_permission_name)}.
      *
      * @param player   the permission owner (identity)
      * @param altUuid  the target alternative UUID (must belong to the player's identity)
