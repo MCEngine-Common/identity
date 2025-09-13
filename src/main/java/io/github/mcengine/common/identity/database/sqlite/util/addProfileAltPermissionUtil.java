@@ -8,36 +8,22 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
 /**
- * Utility for adding or refreshing a permission for an alternative (SQLite dialect).
- * <p>
- * Table: {@code identity_permission}
- * Columns: {@code identity_alternative_uuid, identity_permission_name, created_at, updated_at}
+ * Adds or refreshes a permission for an alternative (SQLite dialect).
  */
 public final class addProfileAltPermissionUtil {
 
     private addProfileAltPermissionUtil() {}
 
-    /**
-     * Adds or refreshes a permission row for the given alt.
-     *
-     * @param conn    SQLite connection
-     * @param plugin  Bukkit plugin for logging
-     * @param player  owner of the alt (not used directly in INSERT)
-     * @param altUuid alternative UUID to attach the permission to
-     * @param permName permission node
-     * @return true if inserted/updated, false otherwise
-     */
-    public static boolean invoke(Connection conn, Plugin plugin, Player player, String altUuid, String permName) {
+    public static boolean invoke(Connection conn, Plugin plugin, Player player,
+                                 String altUuid, String permName) {
         if (conn == null) return false;
         if (altUuid == null || altUuid.isEmpty()) return false;
         if (permName == null || permName.isEmpty()) return false;
 
         try (PreparedStatement ps = conn.prepareStatement(
-                "INSERT INTO identity_permission (" +
+                "INSERT OR IGNORE INTO identity_permission (" +
                         "identity_alternative_uuid, identity_permission_name" +
-                        ") VALUES (?, ?) " +
-                        "ON CONFLICT(identity_alternative_uuid, identity_permission_name) " +
-                        "DO UPDATE SET updated_at=CURRENT_TIMESTAMP")) {
+                        ") VALUES (?, ?)")) {
             ps.setString(1, altUuid);
             ps.setString(2, permName);
             return ps.executeUpdate() > 0;
