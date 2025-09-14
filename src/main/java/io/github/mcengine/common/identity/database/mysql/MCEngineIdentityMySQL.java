@@ -112,8 +112,8 @@ public class MCEngineIdentityMySQL implements IMCEngineIdentityDB {
     }
 
     @Override
-    public String getActiveAltUuid(Player player) {
-        return getActiveAltUuidUtil.invoke(conn, plugin, player);
+    public String getActiveProfileAltUuid(Player player) {
+        return getActiveProfileAltUuidUtil.invoke(conn, plugin, player);
     }
 
     /**
@@ -196,13 +196,13 @@ public class MCEngineIdentityMySQL implements IMCEngineIdentityDB {
      * @return list of alt identifiers or names (never {@code null})
      */
     @Override
-    public java.util.List<String> getProfileAllAlt(Player player) {
-        return getProfileAllAltUtil.invoke(conn, plugin, player);
+    public java.util.List<String> getAllProfileAlt(Player player) {
+        return getAllProfileAltUtil.invoke(conn, plugin, player);
     }
 
     @Override
-    public boolean isPlayersAlt(Player player, String altUuid) {
-        return isPlayersAltUtil.invoke(conn, plugin, player, altUuid);
+    public boolean isPlayerProfileAlt(Player player, String altUuid) {
+        return isPlayerProfileAltUtil.invoke(conn, plugin, player, altUuid);
     }
 
     @Override
@@ -211,24 +211,24 @@ public class MCEngineIdentityMySQL implements IMCEngineIdentityDB {
     }
 
     @Override
-    public boolean addActiveAltPermission(Player player, String permName) {
-        return addActiveAltPermissionUtil.invoke(
+    public boolean addActiveProfileAltPermission(Player player, String permName) {
+        return addActiveProfileAltPermissionUtil.invoke(
             conn,
             plugin,
             player,
             permName,
-            getActiveAltUuid(player)
+            getActiveProfileAltUuid(player)
         );
     }
 
     @Override
-    public boolean hasActiveAltCount(Player player, String permName) {
-        return hasActiveAltCountUtil.invoke(
+    public boolean hasPermissionActiveProfileAlt(Player player, String permName) {
+        return hasPermissionActiveProfileAltUtil.invoke(
             conn,
             plugin,
             player,
             permName,
-            getActiveAltUuid(player),
+            getActiveProfileAltUuid(player),
         player.getUniqueId().toString() + "-0"
         );
     }
@@ -278,8 +278,8 @@ public class MCEngineIdentityMySQL implements IMCEngineIdentityDB {
      * @return {@code true} if a matching permission row exists; otherwise {@code false}
      */
     @Override
-    public boolean hasAltPermission(Player player, String altUuid, String permName) {
-        return hasAltPermissionUtil.invoke(conn, plugin, player, altUuid, permName);
+    public boolean hasPermissionProfileAlt(Player player, String altUuid, String permName) {
+        return hasPermissionProfileAltUtil.invoke(conn, plugin, player, altUuid, permName);
     }
 
     /**

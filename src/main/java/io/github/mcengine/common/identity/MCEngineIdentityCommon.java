@@ -107,8 +107,8 @@ public class MCEngineIdentityCommon {
      * @param player Bukkit player
      * @return active alt UUID or null
      */
-    public String getActiveAltUuid(Player player) {
-        return db.getActiveAltUuid(player);
+    public String getActiveProfileAltUuid(Player player) {
+        return db.getActiveProfileAltUuid(player);
     }
 
     /**
@@ -160,8 +160,8 @@ public class MCEngineIdentityCommon {
     }
 
     /** Returns all alt identifiers/names for the player's identity. */
-    public java.util.List<String> getProfileAllAlt(Player player) {
-        return db.getProfileAllAlt(player);
+    public java.util.List<String> getAllProfileAlt(Player player) {
+        return db.getAllProfileAlt(player);
     }
 
     /**
@@ -203,13 +203,13 @@ public class MCEngineIdentityCommon {
     }
 
     /** Convenience: checks a permission for the active alt (or primary if none). */
-    public boolean hasActiveAltCount(Player player, String permName) {
-        return db.hasActiveAltCount(player, permName);
+    public boolean hasPermissionActiveProfileAlt(Player player, String permName) {
+        return db.hasPermissionActiveProfileAlt(player, permName);
     }
 
     /** Convenience: adds a permission for the active alt (or primary if none). */
-    public boolean addActiveAltPermission(Player player, String permName) {
-        return db.addActiveAltPermission(player, permName);
+    public boolean addActiveProfileAltPermission(Player player, String permName) {
+        return db.addActiveProfileAltPermission(player, permName);
     }
 
     /** Switches active alt by its display name. */
@@ -218,8 +218,8 @@ public class MCEngineIdentityCommon {
     }
 
     /** Validates if a given altUuid belongs to this player. */
-    public boolean isPlayersAlt(Player player, String altUuid) {
-        return db.isPlayersAlt(player, altUuid);
+    public boolean isPlayerProfileAlt(Player player, String altUuid) {
+        return db.isPlayerProfileAlt(player, altUuid);
     }
 
     /**
@@ -230,8 +230,8 @@ public class MCEngineIdentityCommon {
      * @param permName permission name to check
      * @return {@code true} if a matching permission row exists; otherwise {@code false}
      */
-    public boolean hasAltPermission(Player player, String altUuid, String permName) {
-        return db.hasAltPermission(player, altUuid, permName);
+    public boolean hasPermissionProfileAlt(Player player, String altUuid, String permName) {
+        return db.hasPermissionProfileAlt(player, altUuid, permName);
     }
 
     // -------------------------------------------------

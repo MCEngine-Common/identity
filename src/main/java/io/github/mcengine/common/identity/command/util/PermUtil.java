@@ -95,13 +95,13 @@ public final class PermUtil {
         }
 
         // Validate that the alt belongs to this player
-        if (!api.isPlayersAlt(target, resolvedAltUuid)) {
+        if (!api.isPlayerProfileAlt(target, resolvedAltUuid)) {
             sender.sendMessage("That alt does not belong to " + target.getName() + ".");
             return true;
         }
 
-        // Use current API signatures: hasAltPermission(Player, altUuid, perm)
-        boolean exists = api.hasAltPermission(target, resolvedAltUuid, perm);
+        // Use current API signatures: hasPermissionProfileAlt(Player, altUuid, perm)
+        boolean exists = api.hasPermissionProfileAlt(target, resolvedAltUuid, perm);
         if (exists) {
             sender.sendMessage(MSG_PERMISSION_ALREADY_ADDED);
             return true;

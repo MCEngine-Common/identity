@@ -43,7 +43,7 @@ public final class MCEngineIdentityTabCompleterUtil {
                 return List.of(resolvedUuid);
             }
         }
-        return filterPrefix(token, api.getProfileAllAlt(player));
+        return filterPrefix(token, api.getAllProfileAlt(player));
     }
 
     /**
@@ -55,7 +55,7 @@ public final class MCEngineIdentityTabCompleterUtil {
      * @return list of alt UUIDs
      */
     public static List<String> altsWithoutDisplayName(MCEngineIdentityCommon api, Player player) {
-        List<String> all = api.getProfileAllAlt(player);
+        List<String> all = api.getAllProfileAlt(player);
         List<String> onlyUuids = new ArrayList<>();
         for (String s : all) {
             if (looksLikeAltUuid(s)) {
@@ -73,7 +73,7 @@ public final class MCEngineIdentityTabCompleterUtil {
      * @return list of display-name alts
      */
     public static List<String> altsWithDisplayNameOnly(MCEngineIdentityCommon api, Player player) {
-        List<String> all = api.getProfileAllAlt(player);
+        List<String> all = api.getAllProfileAlt(player);
         List<String> names = new ArrayList<>();
         for (String s : all) {
             if (!looksLikeAltUuid(s)) {
@@ -95,7 +95,7 @@ public final class MCEngineIdentityTabCompleterUtil {
      * @return list of UUID strings for all alts belonging to the player
      */
     public static List<String> altsAllUuids(MCEngineIdentityCommon api, Player player) {
-        List<String> all = api.getProfileAllAlt(player);
+        List<String> all = api.getAllProfileAlt(player);
         List<String> uuids = new ArrayList<>();
         for (String s : all) {
             if (looksLikeAltUuid(s)) {

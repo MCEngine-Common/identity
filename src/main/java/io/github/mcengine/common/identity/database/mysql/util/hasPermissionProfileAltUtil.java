@@ -1,4 +1,4 @@
-package io.github.mcengine.common.identity.database.sqlite.util;
+package io.github.mcengine.common.identity.database.mysql.util;
 
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
@@ -6,26 +6,24 @@ import org.bukkit.plugin.Plugin;
 import java.sql.*;
 
 /**
- * Checks whether a permission entry exists for the given alt.
- * <p>Method name follows the interface: {@code hasAltPermission} (permission existence).</p>
+ * Utility for checking whether a permission entry exists for a given alt belonging to a player (MySQL dialect).
+ * <p>
+ * The name mirrors the interface method: {@code hasPermissionProfileAlt}.
  */
-public final class hasAltPermissionUtil {
+public final class hasPermissionProfileAltUtil {
+
+    /** Prevent instantiation of this utility class. */
+    private hasPermissionProfileAltUtil() {}
 
     /**
-     * Utility class; not instantiable.
-     */
-    private hasAltPermissionUtil() {}
-
-    /**
-     * Verifies that {@code altUuid} belongs to the player's identity and checks whether
-     * the permission name exists for that alternative.
+     * Verifies {@code altUuid} belongs to {@code player} and checks for an existing permission row.
      *
-     * @param conn     active SQLite {@link Connection}
-     * @param plugin   Bukkit {@link Plugin} for logging
-     * @param player   owner {@link Player}
+     * @param conn     active MySQL {@link Connection}; if {@code null}, returns {@code false}
+     * @param plugin   Bukkit {@link Plugin} for logging warnings
+     * @param player   owner {@link Player} of the identity
      * @param altUuid  alternative UUID to check
      * @param permName permission name to check
-     * @return {@code true} if a matching permission row exists; otherwise {@code false}
+     * @return {@code true} if a matching permission row exists; {@code false} otherwise (including validation/SQL error)
      */
     public static boolean invoke(Connection conn, Plugin plugin, Player player, String altUuid, String permName) {
         if (conn == null) return false;
@@ -51,7 +49,7 @@ public final class hasAltPermissionUtil {
                 try (ResultSet rs = ps.executeQuery()) { return rs.next(); }
             }
         } catch (SQLException e) {
-            plugin.getLogger().warning("hasAltPermissionUtil (sqlite) failed: " + e.getMessage());
+            plugin.getLogger().warning("hasPermissionProfileAltUtil (mysql) failed: " + e.getMessage());
             e.printStackTrace();
             return false;
         }

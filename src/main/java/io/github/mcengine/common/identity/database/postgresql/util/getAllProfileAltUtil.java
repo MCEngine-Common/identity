@@ -13,10 +13,10 @@ import java.util.List;
  * Each entry is the alt's display name if set; otherwise the alt UUID (e.g., {@code {uuid}-N}).
  * Results are ordered by {@code identity_alternative_uuid} ascending.
  */
-public final class getProfileAllAltUtil {
+public final class getAllProfileAltUtil {
 
     /** Prevents instantiation of this utility class. */
-    private getProfileAllAltUtil() {}
+    private getAllProfileAltUtil() {}
 
     /**
      * Returns all alternatives for the player's identity.
@@ -43,7 +43,7 @@ public final class getProfileAllAltUtil {
                 }
             }
         } catch (SQLException e) {
-            plugin.getLogger().warning("getProfileAllAltUtil (pg) failed: " + e.getMessage());
+            plugin.getLogger().warning("getAllProfileAltUtil (pg) failed: " + e.getMessage());
             e.printStackTrace();
         }
         return out;

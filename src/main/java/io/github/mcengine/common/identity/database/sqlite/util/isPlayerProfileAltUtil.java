@@ -7,8 +7,8 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 
-public final class isPlayersAltUtil {
-    private isPlayersAltUtil() {}
+public final class isPlayerProfileAltUtil {
+    private isPlayerProfileAltUtil() {}
 
     public static boolean invoke(Connection conn, Plugin plugin, Player player, String altUuid) {
         final String sql = "SELECT 1 FROM identity_alternative WHERE identity_uuid = ? AND identity_alternative_uuid = ?";
@@ -19,7 +19,7 @@ public final class isPlayersAltUtil {
                 return rs.next();
             }
         } catch (Exception e) {
-            plugin.getLogger().warning("[IdentitySQLite] isPlayersAlt failed: " + e.getMessage());
+            plugin.getLogger().warning("[IdentitySQLite] isPlayerProfileAlt failed: " + e.getMessage());
             return false;
         }
     }
