@@ -185,10 +185,10 @@ public class MCEngineIdentityTabCompleter implements TabCompleter {
                     // Show target player's alts using "name if set, otherwise altUuid"
                     Player target = Bukkit.getPlayerExact(args[2]);
                     if (target == null) return Collections.emptyList();
-                    // api.getProfileAllAlt(target) already returns display names where set, else UUIDs
+                    // api.getAllProfileAlt(target) already returns display names where set, else UUIDs
                     return MCEngineIdentityTabCompleterUtil.filterPrefix(
                             args[3],
-                            api.getProfileAllAlt(target)
+                            api.getAllProfileAlt(target)
                     );
                 }
                 if (args.length == 5) {

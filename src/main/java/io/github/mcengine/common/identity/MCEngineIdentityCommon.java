@@ -203,8 +203,8 @@ public class MCEngineIdentityCommon {
     }
 
     /** Convenience: checks a permission for the active alt (or primary if none). */
-    public boolean hasActiveAltCount(Player player, String permName) {
-        return db.hasActiveAltCount(player, permName);
+    public boolean hasPermissionActiveProfileAlt(Player player, String permName) {
+        return db.hasPermissionActiveProfileAlt(player, permName);
     }
 
     /** Convenience: adds a permission for the active alt (or primary if none). */

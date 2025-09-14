@@ -189,7 +189,7 @@ public interface IMCEngineIdentityDB {
     /**
      * Convenience: checks a permission against the currently active alt (or primary if none).
      */
-    boolean hasActiveAltCount(Player player, String permName);
+    boolean hasPermissionActiveProfileAlt(Player player, String permName);
 
     /**
      * Convenience: adds (or refreshes) a permission for the currently active alt

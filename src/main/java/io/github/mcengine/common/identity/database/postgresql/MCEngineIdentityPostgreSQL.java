@@ -228,8 +228,8 @@ public class MCEngineIdentityPostgreSQL implements IMCEngineIdentityDB {
     }
 
     @Override
-    public boolean hasActiveAltCount(Player player, String permName) {
-        return hasActiveAltCountUtil.invoke(
+    public boolean hasPermissionActiveProfileAlt(Player player, String permName) {
+        return hasPermissionActiveProfileAltUtil.invoke(
             conn,
             plugin,
             player,
