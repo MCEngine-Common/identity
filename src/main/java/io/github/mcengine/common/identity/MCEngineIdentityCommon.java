@@ -107,8 +107,8 @@ public class MCEngineIdentityCommon {
      * @param player Bukkit player
      * @return active alt UUID or null
      */
-    public String getActiveAltUuid(Player player) {
-        return db.getActiveAltUuid(player);
+    public String getActiveProfileAltUuid(Player player) {
+        return db.getActiveProfileAltUuid(player);
     }
 
     /**
@@ -160,8 +160,8 @@ public class MCEngineIdentityCommon {
     }
 
     /** Returns all alt identifiers/names for the player's identity. */
-    public java.util.List<String> getProfileAllAlt(Player player) {
-        return db.getProfileAllAlt(player);
+    public java.util.List<String> getAllProfileAlt(Player player) {
+        return db.getAllProfileAlt(player);
     }
 
     /**
@@ -208,8 +208,8 @@ public class MCEngineIdentityCommon {
     }
 
     /** Convenience: adds a permission for the active alt (or primary if none). */
-    public boolean addActiveAltPermission(Player player, String permName) {
-        return db.addActiveAltPermission(player, permName);
+    public boolean addActiveProfileAltPermission(Player player, String permName) {
+        return db.addActiveProfileAltPermission(player, permName);
     }
 
     /** Switches active alt by its display name. */

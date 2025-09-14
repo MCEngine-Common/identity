@@ -1,4 +1,4 @@
-package io.github.mcengine.common.identity.database.mysql.util;
+package io.github.mcengine.common.identity.database.sqlite.util;
 
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
@@ -8,23 +8,23 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Utility for listing all alternatives for a player's identity (MySQL dialect).
- * <p>
- * Each entry is the alt's display name if set; otherwise the alt UUID (e.g., {@code {uuid}-N}).
- * Results are ordered by {@code identity_alternative_uuid} ascending.
+ * Lists all alts for the player's identity (name if set, else UUID), ordered by UUID asc.
  */
-public final class getProfileAllAltUtil {
-
-    /** Prevents instantiation of this utility class. */
-    private getProfileAllAltUtil() {}
+public final class getAllProfileAltUtil {
 
     /**
-     * Returns all alternatives for the player's identity.
+     * Utility class; not instantiable.
+     */
+    private getAllProfileAltUtil() {}
+
+    /**
+     * Returns all alternative entries for the player's identity.
+     * Each list element is the display name if present; otherwise the alt UUID.
      *
-     * @param conn   active MySQL {@link Connection}; must not be {@code null}
-     * @param plugin Bukkit {@link Plugin} used for logging warnings
-     * @param player owner {@link Player} of the identity
-     * @return a list of display names or UUIDs (never {@code null}); empty list on error or when none exist
+     * @param conn   active SQLite {@link Connection}
+     * @param plugin Bukkit {@link Plugin} for logging
+     * @param player owner {@link Player}
+     * @return ordered list of alternative identifiers or names (never {@code null})
      */
     public static List<String> invoke(Connection conn, Plugin plugin, Player player) {
         final List<String> out = new ArrayList<>();
@@ -43,7 +43,7 @@ public final class getProfileAllAltUtil {
                 }
             }
         } catch (SQLException e) {
-            plugin.getLogger().warning("getProfileAllAltUtil failed: " + e.getMessage());
+            plugin.getLogger().warning("getAllProfileAltUtil (sqlite) failed: " + e.getMessage());
             e.printStackTrace();
         }
         return out;

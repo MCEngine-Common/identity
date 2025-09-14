@@ -112,8 +112,8 @@ public class MCEngineIdentityMySQL implements IMCEngineIdentityDB {
     }
 
     @Override
-    public String getActiveAltUuid(Player player) {
-        return getActiveAltUuidUtil.invoke(conn, plugin, player);
+    public String getActiveProfileAltUuid(Player player) {
+        return getActiveProfileAltUuidUtil.invoke(conn, plugin, player);
     }
 
     /**
@@ -196,8 +196,8 @@ public class MCEngineIdentityMySQL implements IMCEngineIdentityDB {
      * @return list of alt identifiers or names (never {@code null})
      */
     @Override
-    public java.util.List<String> getProfileAllAlt(Player player) {
-        return getProfileAllAltUtil.invoke(conn, plugin, player);
+    public java.util.List<String> getAllProfileAlt(Player player) {
+        return getAllProfileAltUtil.invoke(conn, plugin, player);
     }
 
     @Override
@@ -211,13 +211,13 @@ public class MCEngineIdentityMySQL implements IMCEngineIdentityDB {
     }
 
     @Override
-    public boolean addActiveAltPermission(Player player, String permName) {
-        return addActiveAltPermissionUtil.invoke(
+    public boolean addActiveProfileAltPermission(Player player, String permName) {
+        return addActiveProfileAltPermissionUtil.invoke(
             conn,
             plugin,
             player,
             permName,
-            getActiveAltUuid(player)
+            getActiveProfileAltUuid(player)
         );
     }
 
@@ -228,7 +228,7 @@ public class MCEngineIdentityMySQL implements IMCEngineIdentityDB {
             plugin,
             player,
             permName,
-            getActiveAltUuid(player),
+            getActiveProfileAltUuid(player),
         player.getUniqueId().toString() + "-0"
         );
     }

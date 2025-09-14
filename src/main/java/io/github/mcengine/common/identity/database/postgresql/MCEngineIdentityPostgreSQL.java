@@ -111,8 +111,8 @@ public class MCEngineIdentityPostgreSQL implements IMCEngineIdentityDB {
     }
 
     @Override
-    public String getActiveAltUuid(Player player) {
-        return getActiveAltUuidUtil.invoke(conn, plugin, player);
+    public String getActiveProfileAltUuid(Player player) {
+        return getActiveProfileAltUuidUtil.invoke(conn, plugin, player);
     }
 
     /**
@@ -196,14 +196,14 @@ public class MCEngineIdentityPostgreSQL implements IMCEngineIdentityDB {
     /**
      * Returns all alternatives for the player's identity, each entry being the display name if set,
      * otherwise the alt UUID (e.g., {@code {uuid}-N}). Ordered by UUID ascending.
-     * Delegates to {@code getProfileAllAltUtil.invoke(...)}.
+     * Delegates to {@code getAllProfileAltUtil.invoke(...)}.
      *
      * @param player Bukkit player
      * @return list of alt identifiers or names (never {@code null})
      */
     @Override
-    public java.util.List<String> getProfileAllAlt(Player player) {
-        return getProfileAllAltUtil.invoke(conn, plugin, player);
+    public java.util.List<String> getAllProfileAlt(Player player) {
+        return getAllProfileAltUtil.invoke(conn, plugin, player);
     }
 
     @Override
@@ -217,13 +217,13 @@ public class MCEngineIdentityPostgreSQL implements IMCEngineIdentityDB {
     }
 
     @Override
-    public boolean addActiveAltPermission(Player player, String permName) {
-        return addActiveAltPermissionUtil.invoke(
+    public boolean addActiveProfileAltPermission(Player player, String permName) {
+        return addActiveProfileAltPermissionUtil.invoke(
             conn,
             plugin,
             player,
             permName,
-            getActiveAltUuid(player)
+            getActiveProfileAltUuid(player)
         );
     }
 
@@ -234,7 +234,7 @@ public class MCEngineIdentityPostgreSQL implements IMCEngineIdentityDB {
             plugin,
             player,
             permName,
-            getActiveAltUuid(player),
+            getActiveProfileAltUuid(player),
         player.getUniqueId().toString() + "-0"
         );
     }

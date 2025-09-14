@@ -24,7 +24,7 @@ public interface IMCEngineIdentityDB {
      * Returns the currently active alternative UUID for this player's identity
      * (from identity_session.identity_alternative_uuid). May return null if none set.
      */
-    String getActiveAltUuid(Player player);
+    String getActiveProfileAltUuid(Player player);
 
     /**
      * Executes a SQL query expected to return a single scalar value.
@@ -96,7 +96,7 @@ public interface IMCEngineIdentityDB {
      * @param player Bukkit player
      * @return list of alt identifiers or names (never {@code null})
      */
-    java.util.List<String> getProfileAllAlt(Player player);
+    java.util.List<String> getAllProfileAlt(Player player);
 
     /**
      * Returns the number of alternatives owned by the player's identity (including the primary {@code {uuid}-0}).
@@ -195,7 +195,7 @@ public interface IMCEngineIdentityDB {
      * Convenience: adds (or refreshes) a permission for the currently active alt
      * (or primary if none).
      */
-    boolean addActiveAltPermission(Player player, String permName);
+    boolean addActiveProfileAltPermission(Player player, String permName);
 
     /**
      * Switches the active alt by its display name (helper over getProfileAltUuidByName + changeProfileAlt).

@@ -7,8 +7,8 @@ import org.bukkit.plugin.Plugin;
 
 import java.sql.Connection;
 
-public final class addActiveAltPermissionUtil {
-    private addActiveAltPermissionUtil() {}
+public final class addActiveProfileAltPermissionUtil {
+    private addActiveProfileAltPermissionUtil() {}
 
     public static boolean invoke(Connection conn, Plugin plugin, Player player, String permName, String activeAltUuid) {
         return addProfileAltPermissionUtil.invoke(conn, plugin, player, activeAltUuid, permName);

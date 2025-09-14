@@ -14,8 +14,8 @@ import java.sql.ResultSet;
  * - Returns the string in identity_session.identity_alternative_uuid
  * - Returns null if the row doesn't exist or the column is NULL
  */
-public final class getActiveAltUuidUtil {
-    private getActiveAltUuidUtil() {}
+public final class getActiveProfileAltUuidUtil {
+    private getActiveProfileAltUuidUtil() {}
 
     public static String invoke(Connection conn, Plugin plugin, Player player) {
         if (player == null) return null;
@@ -37,7 +37,7 @@ public final class getActiveAltUuidUtil {
                 }
             }
         } catch (Exception e) {
-            plugin.getLogger().warning("[IdentityPostgreSQL] getActiveAltUuid failed: " + e.getMessage());
+            plugin.getLogger().warning("[IdentityPostgreSQL] getActiveProfileAltUuid failed: " + e.getMessage());
         }
         return null;
     }

@@ -7,8 +7,8 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 
-public final class getActiveAltUuidUtil {
-    private getActiveAltUuidUtil() {}
+public final class getActiveProfileAltUuidUtil {
+    private getActiveProfileAltUuidUtil() {}
 
     public static String invoke(Connection conn, Plugin plugin, Player player) {
         if (player == null) return null;
@@ -26,7 +26,7 @@ public final class getActiveAltUuidUtil {
                 }
             }
         } catch (Exception e) {
-            plugin.getLogger().warning("[IdentitySQLite] getActiveAltUuid failed: " + e.getMessage());
+            plugin.getLogger().warning("[IdentitySQLite] getActiveProfileAltUuid failed: " + e.getMessage());
         }
         return null;
     }
