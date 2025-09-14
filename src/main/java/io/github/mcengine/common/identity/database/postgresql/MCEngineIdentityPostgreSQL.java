@@ -207,8 +207,8 @@ public class MCEngineIdentityPostgreSQL implements IMCEngineIdentityDB {
     }
 
     @Override
-    public boolean isPlayersAlt(Player player, String altUuid) {
-        return isPlayersAltUtil.invoke(conn, plugin, player, altUuid);
+    public boolean isPlayerProfileAlt(Player player, String altUuid) {
+        return isPlayerProfileAltUtil.invoke(conn, plugin, player, altUuid);
     }
 
     @Override
@@ -280,7 +280,7 @@ public class MCEngineIdentityPostgreSQL implements IMCEngineIdentityDB {
 
     /**
      * Checks whether a permission entry already exists for the given player's alternative.
-     * Delegates to {@code hasAltPermissionUtil.invoke(...)}.
+     * Delegates to {@code hasPermissionProfileAltUtil.invoke(...)}.
      *
      * @param player   owner {@link Player} of the identity
      * @param altUuid  alternative UUID to check
@@ -288,8 +288,8 @@ public class MCEngineIdentityPostgreSQL implements IMCEngineIdentityDB {
      * @return {@code true} if a matching permission row exists; otherwise {@code false}
      */
     @Override
-    public boolean hasAltPermission(Player player, String altUuid, String permName) {
-        return hasAltPermissionUtil.invoke(conn, plugin, player, altUuid, permName);
+    public boolean hasPermissionProfileAlt(Player player, String altUuid, String permName) {
+        return hasPermissionProfileAltUtil.invoke(conn, plugin, player, altUuid, permName);
     }
 
     /**

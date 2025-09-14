@@ -218,8 +218,8 @@ public class MCEngineIdentityCommon {
     }
 
     /** Validates if a given altUuid belongs to this player. */
-    public boolean isPlayersAlt(Player player, String altUuid) {
-        return db.isPlayersAlt(player, altUuid);
+    public boolean isPlayerProfileAlt(Player player, String altUuid) {
+        return db.isPlayerProfileAlt(player, altUuid);
     }
 
     /**
@@ -230,8 +230,8 @@ public class MCEngineIdentityCommon {
      * @param permName permission name to check
      * @return {@code true} if a matching permission row exists; otherwise {@code false}
      */
-    public boolean hasAltPermission(Player player, String altUuid, String permName) {
-        return db.hasAltPermission(player, altUuid, permName);
+    public boolean hasPermissionProfileAlt(Player player, String altUuid, String permName) {
+        return db.hasPermissionProfileAlt(player, altUuid, permName);
     }
 
     // -------------------------------------------------

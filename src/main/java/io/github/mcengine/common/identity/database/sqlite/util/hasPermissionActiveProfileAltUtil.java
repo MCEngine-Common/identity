@@ -10,6 +10,6 @@ public final class hasPermissionActiveProfileAltUtil {
 
     public static boolean invoke(Connection conn, Plugin plugin, Player player, String permName, String activeAltUuid, String primaryAltUuid) {
         String targetAlt = (activeAltUuid != null ? activeAltUuid : primaryAltUuid);
-        return hasAltPermissionUtil.invoke(conn, plugin, player, targetAlt, permName);
+        return hasPermissionProfileAltUtil.invoke(conn, plugin, player, targetAlt, permName);
     }
 }

@@ -163,7 +163,7 @@ public interface IMCEngineIdentityDB {
      * @param permName permission name to check
      * @return true if that alt has the permission; false otherwise
      */
-    boolean hasAltPermission(Player player, String altUuid, String permName);
+    boolean hasPermissionProfileAlt(Player player, String altUuid, String permName);
 
     /* 
      * Load and save inventory
@@ -207,5 +207,5 @@ public interface IMCEngineIdentityDB {
     /**
      * Validates ownership: returns true if the given altUuid belongs to this player's identity.
      */
-    boolean isPlayersAlt(Player player, String altUuid);
+    boolean isPlayerProfileAlt(Player player, String altUuid);
 }
