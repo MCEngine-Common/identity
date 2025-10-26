@@ -63,7 +63,7 @@ repositories {
 
 dependencies {
     compileOnly 'org.spigotmc:spigot-api:1.21.10-R0.1-SNAPSHOT'
-    compileOnly 'io.github.mcengine:identity-api:2025.1.0-25'
+    compileOnly 'io.github.mcengine:identity-api:2025.1.0-26'
 }
 
 shadowJar {
